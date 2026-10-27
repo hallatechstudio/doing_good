@@ -56,8 +56,16 @@ export function SiteFooter() {
           </a>
         </div>
       </div>
-      <div className="border-t border-border py-6 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} DoingGood Initiative · Lagos, Nigeria
+      <div className="flex flex-col items-center gap-3 border-t border-border px-4 py-6 text-center text-xs text-muted-foreground">
+        <nav aria-label="Legal" className="flex flex-wrap justify-center gap-5">
+          <Link to="/privacy" className="hover:text-primary">
+            Privacy Policy
+          </Link>
+          <Link to="/terms" className="hover:text-primary">
+            Terms of Use
+          </Link>
+        </nav>
+        <p>© {new Date().getFullYear()} DoingGood Initiative · Lagos, Nigeria</p>
       </div>
     </footer>
   );

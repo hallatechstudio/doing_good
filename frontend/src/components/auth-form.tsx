@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -198,6 +199,29 @@ export function AuthForm({
               </div>
             )}
           </>
+        )}
+        {!profile && mode === "signup" && (
+          <p className="text-xs leading-5 text-muted-foreground">
+            By creating an account, you agree to our{" "}
+            <Link
+              to="/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline"
+            >
+              Terms of Use
+            </Link>
+            . Read our{" "}
+            <Link
+              to="/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline"
+            >
+              Privacy Policy
+            </Link>{" "}
+            to learn how we handle your information. Both links open in a new tab.
+          </p>
         )}
         <Button type="submit" variant="hero" className="w-full" disabled={busy}>
           {busy
