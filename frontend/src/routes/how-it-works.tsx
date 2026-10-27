@@ -30,7 +30,7 @@ const journeys = {
     {
       icon: Package,
       title: "Give it a good introduction.",
-      body: "Sign in with an email code, add your WhatsApp number, upload clear photos and describe the condition honestly. Choose a category and your neighbourhood in Lagos. Listing is always free.",
+      body: "Sign in with your email and password, add your WhatsApp number, upload clear photos and describe the condition honestly. Choose a category and your neighbourhood in Lagos. Listing is always free.",
     },
     {
       icon: Truck,

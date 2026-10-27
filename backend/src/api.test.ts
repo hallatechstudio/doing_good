@@ -11,12 +11,12 @@ test("Neon integration: sign-in, WhatsApp profiles, Cloudinary listings and owne
   const app = createApp();
   const marker = `backend-test-${randomBytes(8).toString("hex")}`;
   const emails: string[] = [];
-  let code = "";
+  let resetToken = "";
   let uploads = 0;
   let failAfter = Infinity;
   const destroyed: string[] = [];
   t.mock.method(ServerClient.prototype, "sendEmail", async (mail: { TextBody: string }) => {
-    code = mail.TextBody.match(/\b\d{6}\b/)?.[0] || "";
+    resetToken = mail.TextBody.match(/[?&]reset=([a-f0-9]{64})/)?.[1] || "";
     return { ErrorCode: 0, Message: "OK", MessageID: "test" };
   });
   t.mock.method(cloudinary.uploader, "upload", async () => {
@@ -32,7 +32,7 @@ test("Neon integration: sign-in, WhatsApp profiles, Cloudinary listings and owne
     return { result: "ok" };
   });
   async function identity(name: string) {
-    const email = `${marker}-${name}@example.com`;
+    const email = `${marker}-${name.toLowerCase()}@example.com`;
     emails.push(email);
     const profile = await db.user.create({ data: { email, full_name: name } });
     const token = randomBytes(32).toString("hex");
@@ -55,46 +55,163 @@ test("Neon integration: sign-in, WhatsApp profiles, Cloudinary listings and owne
     const stranger = await identity("Stranger");
     const email = `${marker}-login@example.com`;
     emails.push(email);
+    const password = "Neighbour password 2026!";
+    const changedPassword = "A different long password!";
     assert.equal(
-      (await request(app).post("/api/auth/code").send({ email, full_name: "Login tester" })).status,
-      200,
-    );
-    assert.match(code, /^\d{6}$/);
-    assert.equal(
-      (await request(app).post("/api/auth/verify").send({ email, code: "000000" })).status,
+      (
+        await request(app)
+          .post("/api/auth/register")
+          .send({ email, full_name: "Login tester", password: "short" })
+      ).status,
       400,
     );
-    const verified = await request(app).post("/api/auth/verify").send({ email, code });
+    const registered = await request(app)
+      .post("/api/auth/register")
+      .send({ email, full_name: "Login tester", password });
+    assert.equal(registered.status, 201);
+    assert.equal(registered.body.password_hash, undefined);
+    const originalCookie = registered.headers["set-cookie"]?.[0];
+    assert.ok(originalCookie);
+    const stored = await db.user.findUniqueOrThrow({ where: { email } });
+    assert.ok(stored.password_hash);
+    assert.ok(stored.password_hash.startsWith("scrypt$"));
+    assert.ok(!stored.password_hash.includes(password));
+    assert.equal(
+      (
+        await request(app)
+          .post("/api/auth/register")
+          .send({ email, full_name: "Other name", password })
+      ).status,
+      409,
+    );
+    const wrong = await request(app)
+      .post("/api/auth/login")
+      .send({ email, password: "wrong password" });
+    const unknown = await request(app)
+      .post("/api/auth/login")
+      .send({ email: `${marker}-missing@example.com`, password });
+    assert.equal(wrong.status, 401);
+    assert.deepEqual(wrong.body, unknown.body);
+    const verified = await request(app)
+      .post("/api/auth/login")
+      .send({ email: email.toUpperCase(), password });
     assert.equal(verified.status, 200);
     assert.equal(verified.body.phone, "");
+    assert.equal(verified.body.password_hash, undefined);
     const cookie = verified.headers["set-cookie"]?.[0];
     assert.ok(cookie);
     assert.ok(cookie.includes("HttpOnly"));
-    assert.equal((await request(app).post("/api/auth/verify").send({ email, code })).status, 400);
+    assert.equal(
+      (await request(app).get("/api/auth/me").set("Cookie", cookie)).body.password_hash,
+      undefined,
+    );
+    assert.equal((await request(app).post("/api/auth/code").send({ email })).status, 404);
+    const missingReset = await request(app)
+      .post("/api/auth/forgot-password")
+      .send({ email: `${marker}-missing@example.com` });
+    const requestedReset = await request(app).post("/api/auth/forgot-password").send({ email });
+    assert.equal(requestedReset.status, 200);
+    assert.deepEqual(requestedReset.body, missingReset.body);
+    assert.match(resetToken, /^[a-f0-9]{64}$/);
+    const firstToken = resetToken;
+    const storedReset = await db.passwordReset.findUniqueOrThrow({ where: { user_id: stored.id } });
+    assert.equal(storedReset.token_hash, createHash("sha256").update(resetToken).digest("hex"));
+    await request(app).post("/api/auth/forgot-password").send({ email });
+    assert.notEqual(resetToken, firstToken);
+    assert.equal(
+      (
+        await request(app)
+          .post("/api/auth/reset-password")
+          .send({ token: firstToken, password: changedPassword })
+      ).status,
+      400,
+    );
+    await db.passwordReset.update({
+      where: { user_id: stored.id },
+      data: { expires_at: new Date(Date.now() - 1000) },
+    });
+    assert.equal(
+      (
+        await request(app)
+          .post("/api/auth/reset-password")
+          .send({ token: resetToken, password: changedPassword })
+      ).status,
+      400,
+    );
+    await request(app).post("/api/auth/forgot-password").send({ email });
+    assert.equal(
+      (
+        await request(app)
+          .post("/api/auth/reset-password")
+          .send({ token: resetToken, password: "short" })
+      ).status,
+      400,
+    );
+    assert.equal(
+      (
+        await request(app)
+          .post("/api/auth/reset-password")
+          .send({ token: resetToken, password: changedPassword })
+      ).status,
+      200,
+    );
+    assert.equal(
+      (
+        await request(app)
+          .post("/api/auth/reset-password")
+          .send({ token: resetToken, password: changedPassword })
+      ).status,
+      400,
+    );
+    assert.equal((await request(app).get("/api/auth/me").set("Cookie", originalCookie)).body, null);
+    assert.equal((await request(app).get("/api/auth/me").set("Cookie", cookie)).body, null);
+    assert.equal(
+      (await request(app).post("/api/auth/login").send({ email, password })).status,
+      401,
+    );
+    const newLogin = await request(app)
+      .post("/api/auth/login")
+      .send({ email, password: changedPassword });
+    assert.equal(newLogin.status, 200);
+    const newCookie = newLogin.headers["set-cookie"]?.[0];
+    assert.ok(newCookie);
+    const legacy = await identity("Legacy");
+    await request(app).post("/api/auth/forgot-password").send({ email: legacy.profile.email });
+    assert.equal(
+      (await request(app).post("/api/auth/reset-password").send({ token: resetToken, password }))
+        .status,
+      200,
+    );
+    const legacyLogin = await request(app)
+      .post("/api/auth/login")
+      .send({ email: legacy.profile.email, password });
+    assert.equal(legacyLogin.status, 200);
+    assert.equal(legacyLogin.body.id, legacy.profile.id);
     assert.equal(
       (
         await request(app)
           .patch("/api/profile")
-          .set("Cookie", cookie)
+          .set("Cookie", newCookie)
           .send({ full_name: "Login tester", phone: "08012345678" })
       ).status,
       400,
     );
     const onboarding = await request(app)
       .patch("/api/profile")
-      .set("Cookie", cookie)
+      .set("Cookie", newCookie)
       .send({ full_name: "Login tester", phone: "+234 801 234 5678" });
     assert.equal(onboarding.status, 200);
+    assert.equal(onboarding.body.password_hash, undefined);
     assert.equal(onboarding.body.phone, "+2348012345678");
     assert.equal(
-      (await request(app).get("/api/auth/me").set("Cookie", cookie)).body.phone,
+      (await request(app).get("/api/auth/me").set("Cookie", newCookie)).body.phone,
       "+2348012345678",
     );
     assert.equal(
-      (await request(app).post("/api/auth/logout").set("Cookie", cookie).send({})).status,
+      (await request(app).post("/api/auth/logout").set("Cookie", newCookie).send({})).status,
       200,
     );
-    assert.equal((await request(app).get("/api/auth/me").set("Cookie", cookie)).body, null);
+    assert.equal((await request(app).get("/api/auth/me").set("Cookie", newCookie)).body, null);
     const item = {
       title: "Integration test chair",
       description: "A sturdy chair for integration testing.",
@@ -179,6 +296,7 @@ test("Neon integration: sign-in, WhatsApp profiles, Cloudinary listings and owne
     );
     const dashboard = (await request(app).get("/api/dashboard").set("Cookie", owner.cookie)).body;
     assert.equal(dashboard.listings.length, 1);
+    assert.equal(dashboard.profile.password_hash, undefined);
     assert.equal(dashboard.incoming, undefined);
     assert.equal(dashboard.outgoing, undefined);
     assert.equal(
@@ -199,28 +317,6 @@ test("Neon integration: sign-in, WhatsApp profiles, Cloudinary listings and owne
     assert.equal(failed.status, 503);
     assert.equal(destroyed.length, 1);
     assert.equal(await db.item.count({ where: { owner_id: owner.profile.id } }), 1);
-    // Expired and exhausted challenges never establish sessions.
-    const lockEmail = `${marker}-locked@example.com`;
-    emails.push(lockEmail);
-    await db.loginCode.create({
-      data: {
-        email: lockEmail,
-        full_name: "Locked",
-        code_hash: createHash("sha256").update("123456").digest("hex"),
-        expires_at: new Date(Date.now() + 60000),
-      },
-    });
-    for (let i = 0; i < 5; i++)
-      assert.equal(
-        (await request(app).post("/api/auth/verify").send({ email: lockEmail, code: "000000" }))
-          .status,
-        400,
-      );
-    assert.equal(
-      (await request(app).post("/api/auth/verify").send({ email: lockEmail, code: "123456" }))
-        .status,
-      400,
-    );
   } finally {
     await db.loginCode.deleteMany({ where: { email: { in: emails } } });
     await db.user.deleteMany({ where: { email: { in: emails } } });

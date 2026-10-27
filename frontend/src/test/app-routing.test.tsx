@@ -30,12 +30,21 @@ vi.mock("@/lib/api", () => ({
   listItems: vi.fn(async () => [item]),
   findItem: vi.fn(async (id: string) => (id === item.id ? item : null)),
   getDashboard: vi.fn(async () => ({ profile, listings: [item] })),
-  requestCode: vi.fn(async () => ({ ok: true })),
-  verifyCode: vi.fn(async () => {
+  signIn: vi.fn(async () => {
     state.signedIn = true;
     window.dispatchEvent(new CustomEvent("doinggood:auth", { detail: profile }));
     return profile;
   }),
+  register: vi.fn(async () => {
+    state.signedIn = true;
+    window.dispatchEvent(new CustomEvent("doinggood:auth", { detail: profile }));
+    return profile;
+  }),
+  forgotPassword: vi.fn(async () => ({
+    ok: true,
+    message: "If an account exists for this email, a password reset link has been sent.",
+  })),
+  resetPassword: vi.fn(async () => ({ ok: true })),
   signOut: vi.fn(async () => {
     state.signedIn = false;
   }),
@@ -74,16 +83,16 @@ describe("Connected application routes", () => {
     });
     expect(screen.getByText(/Nothing matches/)).toBeInTheDocument();
   });
-  it("requires verification before opening a protected destination", async () => {
+  it("signs in with email and password, then completes WhatsApp setup", async () => {
     const router = open("/give");
     await screen.findByRole("heading", { name: "Welcome back" });
     expect(router.state.location.search).toBe("?next=%2Fgive");
     fireEvent.change(screen.getByLabelText("Email"), { target: { value: profile.email } });
-    fireEvent.click(screen.getByRole("button", { name: "Email me a code" }));
-    await screen.findByLabelText("Six-digit code");
-    expect(router.state.location.pathname).toBe("/auth");
-    fireEvent.change(screen.getByLabelText("Six-digit code"), { target: { value: "123456" } });
-    fireEvent.click(screen.getByRole("button", { name: "Verify and sign in" }));
+    expect(screen.queryByLabelText("Full name (for new accounts)")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Password"), {
+      target: { value: "Neighbour password 2026!" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
     await screen.findByLabelText("WhatsApp number");
     expect(router.state.location.pathname).toBe("/auth");
     fireEvent.change(screen.getByLabelText("WhatsApp number"), {
@@ -92,6 +101,53 @@ describe("Connected application routes", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
     await screen.findByRole("heading", { name: /Something you no longer need/ });
     expect(await screen.findByLabelText("WhatsApp number")).toHaveValue("+2348012345678");
+  });
+  it("shows a separate account creation form", async () => {
+    open("/auth");
+    fireEvent.click(await screen.findByRole("button", { name: "Create an account" }));
+    expect(screen.getByRole("heading", { name: "Create your account" })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Full name"), { target: { value: "Tolu Ade" } });
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: profile.email } });
+    fireEvent.change(screen.getByLabelText("Password"), {
+      target: { value: "Neighbour password 2026!" },
+    });
+    fireEvent.change(screen.getByLabelText("Confirm password"), {
+      target: { value: "Neighbour password 2026!" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create account" }));
+    await screen.findByLabelText("WhatsApp number");
+    const api = await import("@/lib/api");
+    expect(api.register).toHaveBeenCalledWith(
+      profile.email,
+      "Neighbour password 2026!",
+      "Tolu Ade",
+    );
+  });
+  it("lets existing email-code users request a password setup link", async () => {
+    open("/auth");
+    fireEvent.click(await screen.findByRole("button", { name: "Forgot password?" }));
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: profile.email } });
+    fireEvent.click(screen.getByRole("button", { name: "Send reset link" }));
+    await screen.findByRole("status");
+    expect(
+      screen.getByText("If an account exists for this email, a password reset link has been sent."),
+    ).toBeInTheDocument();
+    expect(state.signedIn).toBe(false);
+  });
+  it("accepts a reset link and returns to password sign-in", async () => {
+    const token = "a".repeat(64);
+    open("/auth?reset=" + token);
+    fireEvent.change(await screen.findByLabelText("New password"), {
+      target: { value: "A different long password!" },
+    });
+    fireEvent.change(screen.getByLabelText("Confirm password"), {
+      target: { value: "A different long password!" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save new password" }));
+    await screen.findByRole("heading", { name: "Welcome back" });
+    const api = await import("@/lib/api");
+    expect(api.resetPassword).toHaveBeenCalledWith(token, "A different long password!");
+    expect(screen.getByLabelText("Password")).toHaveAttribute("type", "password");
   });
   it("shows listings and WhatsApp profile without a requests tab", async () => {
     state.signedIn = true;

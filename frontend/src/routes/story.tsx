@@ -9,7 +9,7 @@ const questions = [
   ],
   [
     "Do I need an account to browse or request?",
-    "You can browse and contact donors on WhatsApp without an account. Sign in with an email code and add your WhatsApp number to list items or manage your profile.",
+    "You can browse and contact donors on WhatsApp without an account. Sign in with your email and password and add your WhatsApp number to list items or manage your profile.",
   ],
   [
     "What can I give?",

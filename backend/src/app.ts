@@ -2,11 +2,12 @@ import express, { type Request, type Response, type NextFunction } from "express
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import { createHash, randomBytes, randomInt } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { z } from "zod";
 import { Prisma } from "./generated/prisma/client.js";
 import { db } from "./db.js";
 import { sendEmail } from "./email.js";
+import { hashPassword, verifyPassword } from "./passwords.js";
 import { uploadListingPhotos, removeUploadedPhotos } from "./cloudinary.js";
 
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
@@ -20,6 +21,14 @@ const emailInput = z
   .max(254)
   .transform((v) => v.toLowerCase());
 const uuid = z.string().uuid();
+const passwordInput = z.string().min(12, "Use a password with at least 12 characters.").max(128);
+const profileSelect = {
+  id: true,
+  email: true,
+  full_name: true,
+  phone: true,
+  created_at: true,
+} satisfies Prisma.UserSelect;
 const phoneInput = z
   .string()
   .trim()
@@ -71,7 +80,7 @@ async function user(req: Request) {
   if (typeof token !== "string") return null;
   const session = await db.session.findUnique({
     where: { id: hash(token) },
-    include: { user: true },
+    include: { user: { select: profileSelect } },
   });
   return session && session.expires_at > new Date() ? session.user : null;
 }
@@ -124,7 +133,7 @@ export function createApp() {
   app.use(express.json({ limit: "8mb" }));
   const authLimit = rateLimit({
     windowMs: 15 * 60000,
-    limit: 10,
+    limit: 20,
     standardHeaders: "draft-8",
     legacyHeaders: false,
   });
@@ -138,67 +147,109 @@ export function createApp() {
   app.get("/api/auth/me", async (req, res) => {
     res.json(await user(req));
   });
-  app.post("/api/auth/code", authLimit, async (req, res) => {
-    const input = z
-      .object({ email: emailInput, full_name: z.string().trim().min(2).max(100).optional() })
-      .parse(req.body);
-    const existing = await db.user.findUnique({ where: { email: input.email } });
-    const code = String(randomInt(100000, 1000000));
-    const challenge = await db.loginCode.upsert({
-      where: { email: input.email },
-      create: {
-        email: input.email,
-        full_name: existing?.full_name || input.full_name || input.email.split("@")[0]!,
-        code_hash: hash(code),
-        expires_at: new Date(Date.now() + 10 * 60000),
-      },
-      update: {
-        code_hash: hash(code),
-        attempts: 0,
-        expires_at: new Date(Date.now() + 10 * 60000),
-        full_name: existing?.full_name || input.full_name || input.email.split("@")[0]!,
-      },
-    });
-    try {
-      await sendEmail(
-        input.email,
-        "Your DoingGood sign-in code",
-        `Your sign-in code is ${code}. It expires in 10 minutes. If you did not request this code, ignore this email.`,
-      );
-    } catch {
-      await db.loginCode.deleteMany({ where: { id: challenge.id, code_hash: hash(code) } });
-      throw new HttpError(503, "Could not send your sign-in email. Please try again later.");
-    }
-    res.json({ ok: true });
-  });
-  app.post("/api/auth/verify", authLimit, async (req, res) => {
-    const input = z
-      .object({ email: emailInput, code: z.string().regex(/^\d{6}$/) })
-      .parse(req.body);
+  async function sessionResponse(res: Response, profileId: string, expectedHash: string) {
     const token = randomBytes(32).toString("hex");
     const expires_at = new Date(Date.now() + 30 * 86400000);
     const profile = await db.$transaction(async (tx) => {
-      const attempts = await tx.loginCode.updateMany({
-        where: { email: input.email, expires_at: { gt: new Date() }, attempts: { lt: 5 } },
-        data: { attempts: { increment: 1 } },
+      // Serialize against reset so old credentials cannot create a session after a password change.
+      const current = await tx.user.updateMany({
+        where: { id: profileId, password_hash: expectedHash },
+        data: { password_hash: expectedHash },
       });
-      if (!attempts.count) return null;
-      const challenge = await tx.loginCode.findUnique({ where: { email: input.email } });
-      if (!challenge || challenge.code_hash !== hash(input.code)) return null;
-      await tx.loginCode.delete({ where: { id: challenge.id } });
-      const profile = await tx.user.upsert({
-        where: { email: input.email },
-        create: { email: input.email, full_name: challenge.full_name },
-        update: {},
-      });
+      if (!current.count)
+        throw new HttpError(401, "Your credentials changed. Please sign in again.");
       await tx.session.deleteMany({ where: { expires_at: { lt: new Date() } } });
-      await tx.session.create({ data: { id: hash(token), user_id: profile.id, expires_at } });
-      return profile;
+      await tx.session.create({ data: { id: hash(token), user_id: profileId, expires_at } });
+      return tx.user.findUniqueOrThrow({ where: { id: profileId }, select: profileSelect });
     });
-    if (!profile)
-      throw new HttpError(400, "Invalid or expired code. Request a new code after five attempts.");
-    res.cookie(cookieName, token, { ...cookieOptions, expires: expires_at }).json(profile);
+    return res.cookie(cookieName, token, { ...cookieOptions, expires: expires_at }).json(profile);
+  }
+  app.post("/api/auth/register", authLimit, async (req, res) => {
+    const input = z
+      .object({
+        email: emailInput,
+        password: passwordInput,
+        full_name: z.string().trim().min(2).max(100),
+      })
+      .parse(req.body);
+    const password_hash = await hashPassword(input.password);
+    const profile = await db.user.create({
+      data: { email: input.email, full_name: input.full_name, password_hash },
+      select: { id: true },
+    });
+    await sessionResponse(res.status(201), profile.id, password_hash);
   });
+  app.post("/api/auth/login", authLimit, async (req, res) => {
+    const input = z
+      .object({ email: emailInput, password: z.string().min(1).max(128) })
+      .parse(req.body);
+    const existing = await db.user.findUnique({
+      where: { email: input.email },
+      select: { id: true, password_hash: true },
+    });
+    const valid = await verifyPassword(input.password, existing?.password_hash || null);
+    if (!valid || !existing?.password_hash)
+      throw new HttpError(401, "Incorrect email or password.");
+    await sessionResponse(res, existing.id, existing.password_hash);
+  });
+  const resetLimit = rateLimit({
+    windowMs: 60 * 60000,
+    limit: 5,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+  });
+  app.post("/api/auth/forgot-password", resetLimit, async (req, res) => {
+    const { email } = z.object({ email: emailInput }).parse(req.body);
+    const profile = await db.user.findUnique({ where: { email }, select: { id: true } });
+    if (profile) {
+      const token = randomBytes(32).toString("hex");
+      const token_hash = hash(token);
+      await db.passwordReset.upsert({
+        where: { user_id: profile.id },
+        create: { user_id: profile.id, token_hash, expires_at: new Date(Date.now() + 30 * 60000) },
+        update: { token_hash, expires_at: new Date(Date.now() + 30 * 60000) },
+      });
+      const link = new URL("/auth", process.env["APP_URL"] || "http://localhost:5173");
+      link.searchParams.set("reset", token);
+      try {
+        await sendEmail(
+          email,
+          "Set your DoingGood password",
+          "Choose a new password using this link: " +
+            link.toString() +
+            "\n\nThis link expires in 30 minutes and can only be used once. If you did not request this, ignore this email.",
+        );
+      } catch {
+        await db.passwordReset.deleteMany({ where: { token_hash } });
+        console.error("Password reset email delivery failed.");
+      }
+    }
+    res.json({
+      ok: true,
+      message: "If an account exists for this email, a password reset link has been sent.",
+    });
+  });
+  app.post("/api/auth/reset-password", authLimit, async (req, res) => {
+    const { token, password } = z
+      .object({ token: z.string().regex(/^[a-f0-9]{64}$/), password: passwordInput })
+      .parse(req.body);
+    const token_hash = hash(token);
+    const challenge = await db.passwordReset.findUnique({ where: { token_hash } });
+    if (!challenge || challenge.expires_at <= new Date())
+      throw new HttpError(400, "This reset link is invalid or expired. Request a new one.");
+    const password_hash = await hashPassword(password);
+    await db.$transaction(async (tx) => {
+      await tx.user.update({ where: { id: challenge.user_id }, data: { password_hash } });
+      const consumed = await tx.passwordReset.deleteMany({
+        where: { token_hash, expires_at: { gt: new Date() } },
+      });
+      if (!consumed.count)
+        throw new HttpError(400, "This reset link is invalid or expired. Request a new one.");
+      await tx.session.deleteMany({ where: { user_id: challenge.user_id } });
+    });
+    res.clearCookie(cookieName, cookieOptions).json({ ok: true });
+  });
+
   app.post("/api/auth/logout", async (req, res) => {
     const token = req.cookies?.[cookieName];
     if (typeof token === "string") await db.session.deleteMany({ where: { id: hash(token) } });
@@ -273,7 +324,7 @@ export function createApp() {
         phone: phoneInput,
       })
       .parse(req.body);
-    res.json(await db.user.update({ where: { id: profile.id }, data }));
+    res.json(await db.user.update({ where: { id: profile.id }, data, select: profileSelect }));
   });
   app.patch("/api/items/:id/status", async (req, res) => {
     const profile = await requireUser(req);
@@ -300,7 +351,9 @@ export function createApp() {
     if (error instanceof HttpError)
       return void res.status(error.status).json({ error: error.message });
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")
-      return void res.status(409).json({ error: "This record already exists." });
+      return void res.status(409).json({
+        error: "An account with this email already exists. Sign in or reset your password.",
+      });
     if (
       error &&
       typeof error === "object" &&

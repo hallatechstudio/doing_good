@@ -38,6 +38,6 @@ After deployment, `https://doinggood-gray.vercel.app/api/health` should return J
 - `npm run build`: create the production frontend in `dist`.
 - `npm test`, `npm run typecheck`, `npm run lint`: verify the app.
 
-Guests contact donors directly on WhatsApp. Signing in is for listing items and managing a donor profile. Listing photos are hosted on Cloudinary; its API credentials stay on the backend.
+Guests contact donors directly on WhatsApp. Sign in with email and password to list items and manage a donor profile. New users choose Create an account. Use Forgot password if you need to reset your password. Listing photos are hosted on Cloudinary; its API credentials stay on the backend.
 
 The browser API variable must be `VITE_API_URL=/api`, not the Render origin. Keep the `/api` rewrite before the React page fallback. The API host is an explicit public routing destination in `vercel.json`; it is not a secret and does not belong in the browser API base URL. The backend serves API JSON only; the frontend is deployed on Vercel.

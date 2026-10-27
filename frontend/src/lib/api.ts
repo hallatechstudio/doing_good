@@ -34,12 +34,20 @@ async function api<T>(path: string, method = "GET", data?: unknown): Promise<T> 
   return body as T;
 }
 export const currentUser = () => api<Profile | null>("/auth/me");
-export const requestCode = (email: string, full_name?: string) =>
-  api("/auth/code", "POST", { email, full_name });
-export async function verifyCode(email: string, code: string) {
-  const profile = await api<Profile>("/auth/verify", "POST", { email, code });
+async function authenticate(path: string, data: unknown) {
+  const profile = await api<Profile>(path, "POST", data);
   window.dispatchEvent(new CustomEvent(AUTH_EVENT, { detail: profile }));
   return profile;
+}
+export const signIn = (email: string, password: string) =>
+  authenticate("/auth/login", { email, password });
+export const register = (email: string, password: string, full_name: string) =>
+  authenticate("/auth/register", { email, password, full_name });
+export const forgotPassword = (email: string) =>
+  api<{ ok: boolean; message: string }>("/auth/forgot-password", "POST", { email });
+export async function resetPassword(token: string, password: string) {
+  await api("/auth/reset-password", "POST", { token, password });
+  window.dispatchEvent(new CustomEvent(AUTH_EVENT, { detail: null }));
 }
 export async function signOut() {
   await api("/auth/logout", "POST", {});
