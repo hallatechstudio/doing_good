@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client"
+  output = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String @id @default(uuid()) @db.Uuid
+  email     String @unique
+  full_name String
+  phone     String @default("")
+  created_at DateTime @default(now())
+  sessions Session[]
+  items Item[]
+  requests ItemRequest[]
+  messages Message[]
+}
+
+model LoginCode {
+  id String @id @default(uuid()) @db.Uuid
+  email String @unique
+  code_hash String
+  full_name String
+  attempts Int @default(0)
+  expires_at DateTime
+}
+
+model Session {
+  id String @id
+  user_id String @db.Uuid
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  expires_at DateTime
+  @@index([user_id])
+  @@index([expires_at])
+}
+
+model Item {
+  id String @id @default(uuid()) @db.Uuid
+  owner_id String @db.Uuid
+  owner User @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+  title String
+  description String
+  category String
+  condition String
+  location String
+  photos String[]
+  status String @default("available")
+  created_at DateTime @default(now())
+  requests ItemRequest[]
+  @@index([status, created_at])
+  @@index([owner_id])
+}
+
+model ItemRequest {
+  id String @id @default(uuid()) @db.Uuid
+  item_id String @db.Uuid
+  item Item @relation(fields: [item_id], references: [id], onDelete: Cascade)
+  requester_user_id String @db.Uuid
+  requester User @relation(fields: [requester_user_id], references: [id], onDelete: Cascade)
+  name String
+  phone String
+  note String?
+  status String @default("pending")
+  created_at DateTime @default(now())
+  messages Message[]
+  @@unique([item_id, requester_user_id])
+  @@index([requester_user_id])
+}
+
+model Message {
+  id String @id @default(uuid()) @db.Uuid
+  request_id String @db.Uuid
+  request ItemRequest @relation(fields: [request_id], references: [id], onDelete: Cascade)
+  sender_id String @db.Uuid
+  sender User @relation(fields: [sender_id], references: [id], onDelete: Cascade)
+  text String
+  created_at DateTime @default(now())
+  @@index([request_id, created_at])
+}
+
+model EmailJob {
+  id String @id @default(uuid()) @db.Uuid
+  recipient String
+  subject String
+  body String
+  attempts Int @default(0)
+  sent_at DateTime?
+  next_attempt_at DateTime @default(now())
+  created_at DateTime @default(now())
+  @@index([sent_at, next_attempt_at])
+}
