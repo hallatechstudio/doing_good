@@ -3,6 +3,7 @@ import {
   Outlet,
   ScrollRestoration,
   isRouteErrorResponse,
+  useLocation,
   useRouteError,
 } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
@@ -46,10 +47,13 @@ export function RouteError() {
 }
 
 export function RootLayout() {
+  const { pathname } = useLocation();
   return (
     <AuthProvider>
       <AuthDialogProvider>
-        <div className="flex min-h-screen flex-col bg-background font-sans text-foreground">
+        <div
+          className={`flex min-h-screen flex-col bg-background font-sans text-foreground${pathname === "/" ? " home-magenta" : ""}`}
+        >
           <SiteHeader />
           <main className="flex-1">
             <Outlet />
