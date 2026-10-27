@@ -94,17 +94,13 @@ export function HowItWorksPage() {
             </article>
           ))}
         </div>
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-primary/20 bg-primary/5 px-6 py-5">
-          <p className="text-sm text-muted-foreground">
-            A simple exchange. A useful item. A little more possibility.
-          </p>
-          <Link
-            to={journey === "find" ? "/" : "/give"}
-            className="inline-flex items-center gap-2 text-sm font-semibold text-primary"
-          >
-            {journey === "find" ? "Explore available items" : "List your first item"}
-            <ArrowRight className="size-4" />
-          </Link>
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <Button asChild variant="hero" size="lg">
+            <Link to="/give">Give an item</Link>
+          </Button>
+          <Button asChild variant="outline" size="lg">
+            <Link to="/">Browse items</Link>
+          </Button>
         </div>
       </section>
 
