@@ -13,8 +13,10 @@ export class ApiError extends Error {
     super(message);
   }
 }
+const apiBaseUrl = (import.meta.env["VITE_API_URL"] || "/api").replace(/\/+$/, "");
+
 async function api<T>(path: string, method = "GET", data?: unknown): Promise<T> {
-  const response = await fetch(`/api${path}`, {
+  const response = await fetch(`${apiBaseUrl}${path}`, {
     method,
     credentials: "same-origin",
     headers: { "Content-Type": "application/json" },

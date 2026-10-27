@@ -36,8 +36,26 @@ Old request/message tables and migration history are preserved to avoid deleting
 - `npm run photos:migrate`: moves any legacy database-embedded listing photos to Cloudinary, preserving old values if a listing cannot be updated. Safe to run again; already migrated photos are skipped.
 - `GET /api/health`: checks the database connection.
 
-## Production
+## Single-host deployment (optional)
 
 Use a Node host with HTTPS and outbound access to Neon, Postmark and Cloudinary. Build `../frontend` with `npm ci` and `npm run build`, then run `npm ci` and `npm run build` here. Apply migrations with `npm run db:migrate` during release, then start with `npm start`. Express serves both `frontend/dist` and the API on the same origin.
 
 Set the database, Postmark and Cloudinary variables listed above, plus `NODE_ENV=production`, `APP_URL` to the public HTTPS origin and `PORT` to the assigned port. Set `TRUST_PROXY=1` only when exactly one trusted reverse proxy sits in front of Express. The selected Postmark sender is `support@bethereexperience.com`, with the `outbound` message stream. The account token is not needed by the running app.
+
+## Render configuration for the Vercel frontend
+
+- Root Directory: `backend`
+- Runtime: Node
+- Build Command: `npm ci --include=dev && npm run build && npm run db:migrate`
+- Start Command: `npm start`
+- Health Check Path: `/api/health`
+- `NODE_ENV=production`
+- `APP_URL=https://doinggood-gray.vercel.app` (the frontend origin, not the Render URL)
+- `TRUST_PROXY=1` for Render's proxy
+- Set `DATABASE_URL`, Postmark and Cloudinary credentials in Render's environment settings. Render provides `PORT`.
+
+The backend can run without `frontend/dist` when deployed separately. Its root returns API metadata in that case. Vercel's `frontend/vercel.ts` reads `BACKEND_URL` from the frontend deployment environment and forwards `/api/*` to `https://doing-good.onrender.com/api/*`, so the browser sees API requests as same-origin. Session cookies remain HTTP-only, secure in production, host-only and `SameSite=Lax`. The backend still rejects requests from unexpected browser origins.
+
+No cross-site cookie or wildcard CORS configuration is required for this proxy setup. Direct browser calls to the Render URL are not the configured frontend connection. Use the Vercel `/api` URL for browser authentication and API requests.
+
+Both applications use their own ignored `.env` files locally. Configure these values in Render and Vercel environment settings for deployment; Git does not upload the local files. On Vercel set `VITE_API_URL=/api` and `BACKEND_URL=https://doing-good.onrender.com`. On Render set `APP_URL=https://doinggood-gray.vercel.app`, `NODE_ENV=production`, `TRUST_PROXY=1`, and the existing database, Postmark and Cloudinary secrets.
