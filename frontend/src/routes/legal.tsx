@@ -107,22 +107,7 @@ export function PrivacyPage() {
         </p>
       </section>
       <section>
-        <h2>5. Service providers and international processing</h2>
-        <p>
-          We use Vercel for the website, Render for the API, Neon for the PostgreSQL database,
-          Cloudinary for listing photographs and Postmark for account emails. These providers
-          process the information needed to perform their services, which may include processing
-          outside Nigeria. We are responsible for using appropriate contractual and other safeguards
-          required by applicable data protection law when transferring personal data
-          internationally.
-        </p>
-        <p>
-          We do not sell personal data. We may disclose information where required by law or where
-          necessary to investigate abuse, protect rights or respond to a lawful request.
-        </p>
-      </section>
-      <section>
-        <h2>6. Cookies</h2>
+        <h2>5. Cookies</h2>
         <p>
           We use an essential sign-in cookie to recognise your session. It expires after up to 30
           days, and signing out clears it from your browser. You can delete or block cookies in your
@@ -131,7 +116,7 @@ export function PrivacyPage() {
         </p>
       </section>
       <section>
-        <h2>7. Retention and security</h2>
+        <h2>6. Retention and security</h2>
         <p>
           We keep account and listing data while needed to provide the service, address disputes or
           meet legal obligations. You can request account and listing deletion by email. Marking an
@@ -146,7 +131,7 @@ export function PrivacyPage() {
         </p>
       </section>
       <section>
-        <h2>8. Your privacy rights</h2>
+        <h2>7. Your privacy rights</h2>
         <p>
           Subject to applicable law, you may request access, correction, deletion, restriction,
           portability or object to processing, and withdraw consent where processing relies on it.
@@ -159,7 +144,7 @@ export function PrivacyPage() {
         </p>
       </section>
       <section>
-        <h2>9. Children and changes to this policy</h2>
+        <h2>8. Children and changes to this policy</h2>
         <p>
           Accounts are intended for people aged 18 or older. If you believe a child has provided
           personal data, contact us so we can investigate and address it. We may update this policy
