@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/lib/auth-context";
+import { AuthDialogProvider } from "@/components/auth-dialog";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 
@@ -47,15 +48,17 @@ export function RouteError() {
 export function RootLayout() {
   return (
     <AuthProvider>
-      <div className="flex min-h-screen flex-col bg-background font-sans text-foreground">
-        <SiteHeader />
-        <main className="flex-1">
-          <Outlet />
-        </main>
-        <SiteFooter />
-      </div>
-      <Toaster />
-      <ScrollRestoration />
+      <AuthDialogProvider>
+        <div className="flex min-h-screen flex-col bg-background font-sans text-foreground">
+          <SiteHeader />
+          <main className="flex-1">
+            <Outlet />
+          </main>
+          <SiteFooter />
+        </div>
+        <Toaster />
+        <ScrollRestoration />
+      </AuthDialogProvider>
     </AuthProvider>
   );
 }

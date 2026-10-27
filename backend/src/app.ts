@@ -89,12 +89,19 @@ async function requireUser(req: Request) {
   if (!profile) throw new HttpError(401, "Sign in to continue.");
   return profile;
 }
-const itemView = (item: {
-  owner: { full_name: string; phone: string };
-  [key: string]: unknown;
-}) => {
+const itemView = (
+  item: {
+    owner: { full_name: string; phone: string };
+    [key: string]: unknown;
+  },
+  signedIn: boolean,
+) => {
   const { owner, ...rest } = item;
-  return { ...rest, donor_name: owner.full_name, donor_whatsapp: owner.phone };
+  return {
+    ...rest,
+    donor_name: owner.full_name,
+    donor_whatsapp: signedIn ? owner.phone : "",
+  };
 };
 export function createApp() {
   const app = express();
@@ -257,6 +264,7 @@ export function createApp() {
   });
   app.get("/api/items", async (req, res) => {
     const page = z.coerce.number().int().min(0).max(10000).default(0).parse(req.query["page"]);
+    const signedIn = Boolean(await user(req));
     const items = await db.item.findMany({
       where: { status: { in: ["available", "pending"] } },
       include: { owner: { select: { full_name: true, phone: true } } },
@@ -264,16 +272,17 @@ export function createApp() {
       take: 50,
       skip: page * 50,
     });
-    res.json(items.map(itemView));
+    res.json(items.map((item) => itemView(item, signedIn)));
   });
   app.get("/api/items/:id", async (req, res) => {
     if (!uuid.safeParse(req.params["id"]).success)
       return void res.status(404).json({ error: "Item not found." });
+    const signedIn = Boolean(await user(req));
     const item = await db.item.findUnique({
       where: { id: String(req.params["id"]) },
       include: { owner: { select: { full_name: true, phone: true } } },
     });
-    res.json(item ? itemView(item) : null);
+    res.json(item ? itemView(item, signedIn) : null);
   });
   app.post(
     "/api/items",
@@ -300,7 +309,7 @@ export function createApp() {
             include: { owner: { select: { full_name: true, phone: true } } },
           });
         });
-        res.status(201).json(itemView(item));
+        res.status(201).json(itemView(item, true));
       } catch (error) {
         await removeUploadedPhotos(assets.map((asset) => asset.publicId));
         throw error;
@@ -314,7 +323,7 @@ export function createApp() {
       include: { owner: { select: { full_name: true, phone: true } } },
       orderBy: { created_at: "desc" },
     });
-    res.json({ profile, listings: listings.map(itemView) });
+    res.json({ profile, listings: listings.map((item) => itemView(item, true)) });
   });
   app.patch("/api/profile", async (req, res) => {
     const profile = await requireUser(req);

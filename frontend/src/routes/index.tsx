@@ -5,11 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ItemCard } from "@/components/item-card";
 import { RequestModal } from "@/components/request-modal";
+import { useAuth } from "@/lib/auth-context";
+import { useAuthDialog } from "@/components/auth-dialog";
 import { CATEGORIES } from "@/lib/site";
 import type { Item } from "@/lib/types";
 
 export function Index() {
   const items = useLoaderData() as Item[];
+  const { userId } = useAuth();
+  const { openAuth } = useAuthDialog();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [requestItem, setRequestItem] = useState<Item | null>(null);
@@ -41,9 +45,19 @@ export function Index() {
             clothes, appliances, books and more, matched across Lagos.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Button variant="hero" size="lg" asChild>
-              <Link to="/give">Give an item</Link>
-            </Button>
+            {userId ? (
+              <Button variant="hero" size="lg" asChild>
+                <Link to="/give">Give an item</Link>
+              </Button>
+            ) : (
+              <Button
+                variant="hero"
+                size="lg"
+                onClick={() => openAuth({ mode: "signin", next: "/give" })}
+              >
+                Give an item
+              </Button>
+            )}
             <Button variant="outline" size="lg" asChild>
               <a href="#browse">Browse new items</a>
             </Button>

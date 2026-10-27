@@ -4,11 +4,13 @@ import { ArrowLeft, MapPin, Tag, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RequestModal } from "@/components/request-modal";
+import { useAuth } from "@/lib/auth-context";
 import { categoryLabel, conditionLabel, STATUS_LABELS } from "@/lib/site";
 import type { Item } from "@/lib/types";
 
 export function ItemDetail() {
   const item = useLoaderData() as Item;
+  const { userId } = useAuth();
   const [active, setActive] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -109,7 +111,9 @@ export function ItemDetail() {
               </Button>
             )}
             <p className="mt-3 text-xs text-muted-foreground">
-              Continue on WhatsApp to contact the donor directly. No DoingGood account is needed.
+              {userId
+                ? "Continue on WhatsApp to contact the donor directly."
+                : "You need a free DoingGood account to request this item and contact the donor on WhatsApp."}
             </p>
           </div>
         </div>

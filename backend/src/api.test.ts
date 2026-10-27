@@ -265,8 +265,22 @@ test("Neon integration: sign-in, WhatsApp profiles, Cloudinary listings and owne
       listing.body.photos,
     );
     const publicListing = (await request(app).get(`/api/items/${id}`)).body;
-    assert.equal(publicListing.donor_whatsapp, item.whatsapp);
+    assert.equal(publicListing.donor_whatsapp, "");
     assert.equal(publicListing.owner, undefined);
+    assert.equal(
+      (await request(app).get(`/api/items/${id}`).set("Cookie", stranger.cookie)).body
+        .donor_whatsapp,
+      item.whatsapp,
+    );
+    type ListedItem = { id: string; donor_whatsapp: string };
+    const findListed = (rows: ListedItem[]) => rows.find((row) => row.id === id);
+    const guestList = findListed((await request(app).get("/api/items")).body);
+    const memberList = findListed(
+      (await request(app).get("/api/items").set("Cookie", stranger.cookie)).body,
+    );
+    assert.ok(guestList && memberList);
+    assert.equal(guestList.donor_whatsapp, "");
+    assert.equal(memberList.donor_whatsapp, item.whatsapp);
     assert.equal(
       (
         await request(app)

@@ -3,10 +3,12 @@ import { toast } from "sonner";
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
+import { useAuthDialog } from "@/components/auth-dialog";
 import { signOut } from "@/lib/api";
 
 export function SiteHeader() {
   const { userId } = useAuth();
+  const { openAuth } = useAuthDialog();
   const navigate = useNavigate();
 
   async function handleSignOut() {
@@ -57,20 +59,27 @@ export function SiteHeader() {
               </Button>
             </>
           ) : (
-            <Link
-              to="/auth"
+            <button
+              type="button"
+              onClick={() => openAuth({ mode: "signin" })}
               className="px-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               Sign in
-            </Link>
+            </button>
           )}
-          <Button asChild variant="hero" size="sm">
-            {userId ? (
+          {userId ? (
+            <Button asChild variant="hero" size="sm">
               <Link to="/give">Give an item</Link>
-            ) : (
-              <Link to="/auth?next=%2Fgive">Give an item</Link>
-            )}
-          </Button>
+            </Button>
+          ) : (
+            <Button
+              variant="hero"
+              size="sm"
+              onClick={() => openAuth({ mode: "signin", next: "/give" })}
+            >
+              Give an item
+            </Button>
+          )}
         </nav>
       </div>
       <nav

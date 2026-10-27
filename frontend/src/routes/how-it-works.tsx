@@ -13,7 +13,7 @@ const journeys = {
     {
       icon: HandHeart,
       title: "Request the item.",
-      body: "Open a listing and tap Request to contact the donor directly on WhatsApp. Ask whether the item is available and share what you need. No account is needed.",
+      body: "Open a listing and tap Request. If you are new, create a free account first - it takes a minute. Then message the donor on WhatsApp to ask whether the item is available and share what you need.",
     },
     {
       icon: Truck,

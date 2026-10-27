@@ -9,7 +9,7 @@ const questions = [
   ],
   [
     "Do I need an account to browse or request?",
-    "You can browse and contact donors on WhatsApp without an account. Sign in with your email and password and add your WhatsApp number to list items or manage your profile.",
+    "You can browse listings without an account, but you need a free one to request or give an item. Sign up with your email and password, add your WhatsApp number, then contact donors on WhatsApp or list what you no longer need.",
   ],
   [
     "What can I give?",
@@ -17,7 +17,7 @@ const questions = [
   ],
   [
     "What happens after I request an item?",
-    "Tap Request this item, then Continue on WhatsApp to message the donor directly. Agree on availability, pick-up or delivery together. DoingGood does not reserve items, book deliveries or collect payments.",
+    "Tap Request this item - you will be asked to create an account or sign in first, then continue on WhatsApp to message the donor. Agree on availability, pick-up or delivery together. DoingGood does not reserve items, book deliveries or collect payments.",
   ],
   [
     "Where does DoingGood operate?",
@@ -112,7 +112,7 @@ export function StoryPage() {
             <div>
               <p className="text-3xl font-extrabold text-primary">1,000 children</p>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                Fed in Makoko through our earlier work at Help Lead Nigeria.
+                Fed in Makoko through our earlier work at HelpLeads Nigeria.
               </p>
             </div>
           </div>

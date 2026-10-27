@@ -1,4 +1,4 @@
-import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { routes } from "@/router";
@@ -92,7 +92,7 @@ describe("Connected application routes", () => {
     fireEvent.change(screen.getByLabelText("Password"), {
       target: { value: "Neighbour password 2026!" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    fireEvent.click(within(screen.getByRole("main")).getByRole("button", { name: "Sign in" }));
     await screen.findByLabelText("WhatsApp number");
     expect(router.state.location.pathname).toBe("/auth");
     fireEvent.change(screen.getByLabelText("WhatsApp number"), {
@@ -158,7 +158,61 @@ describe("Connected application routes", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Profile" }));
     expect(screen.getByLabelText("Full name")).toHaveValue("Tolu Ade");
   });
-  it("lets guests contact donors directly on WhatsApp", async () => {
+  it("asks guests to create an account before requesting an item", async () => {
+    open("/items/" + item.id);
+    fireEvent.click(await screen.findByRole("button", { name: "Request this item" }));
+    const dialog = within(
+      await screen.findByRole("dialog", { name: "Create an account to request this item" }),
+    );
+    expect(dialog.getByRole("button", { name: "Create an account" })).toBeInTheDocument();
+    expect(dialog.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
+    expect(dialog.queryByRole("link", { name: "Continue on WhatsApp" })).not.toBeInTheDocument();
+  });
+  it("signs a guest up inside the request dialog and keeps the item page underneath", async () => {
+    const router = open("/items/" + item.id);
+    fireEvent.click(await screen.findByRole("button", { name: "Request this item" }));
+    const gate = within(
+      await screen.findByRole("dialog", { name: "Create an account to request this item" }),
+    );
+    fireEvent.click(gate.getByRole("button", { name: "Create an account" }));
+    await screen.findByRole("heading", { name: "Create your account" });
+    fireEvent.change(screen.getByLabelText("Full name"), { target: { value: "Tolu Ade" } });
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: profile.email } });
+    fireEvent.change(screen.getByLabelText("Password"), {
+      target: { value: "Neighbour password 2026!" },
+    });
+    fireEvent.change(screen.getByLabelText("Confirm password"), {
+      target: { value: "Neighbour password 2026!" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create account" }));
+    fireEvent.change(await screen.findByLabelText("WhatsApp number"), {
+      target: { value: "+2348012345678" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+    const link = await screen.findByRole("link", { name: "Continue on WhatsApp" });
+    expect(new URL(link.getAttribute("href")!).pathname).toBe("/2348012345678");
+    expect(router.state.location.pathname).toBe("/items/" + item.id);
+  });
+  it("opens sign in as a modal without leaving the page", async () => {
+    const router = open("/");
+    await screen.findByRole("link", { name: item.title });
+    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    const dialog = within(await screen.findByRole("dialog", { name: "Welcome back" }));
+    fireEvent.change(dialog.getByLabelText("Email"), { target: { value: profile.email } });
+    fireEvent.change(dialog.getByLabelText("Password"), {
+      target: { value: "Neighbour password 2026!" },
+    });
+    fireEvent.click(dialog.getByRole("button", { name: "Sign in" }));
+    fireEvent.change(await screen.findByLabelText("WhatsApp number"), {
+      target: { value: "+2348012345678" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(router.state.location.pathname).toBe("/");
+    expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
+  });
+  it("lets signed-in members contact donors directly on WhatsApp", async () => {
+    state.signedIn = true;
     open("/items/" + item.id);
     fireEvent.click(await screen.findByRole("button", { name: "Request this item" }));
     const link = await screen.findByRole("link", { name: "Continue on WhatsApp" });
@@ -166,7 +220,6 @@ describe("Connected application routes", () => {
     expect(url.hostname).toBe("wa.me");
     expect(url.pathname).toBe("/2348012345678");
     expect(url.searchParams.get("text")).toContain(item.title);
-    expect(screen.queryByRole("link", { name: "Sign in to request" })).not.toBeInTheDocument();
   });
   it("renders missing items as 404", async () => {
     open("/items/missing");
