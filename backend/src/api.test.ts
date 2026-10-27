@@ -47,6 +47,10 @@ test("Neon integration: sign-in, WhatsApp profiles, Cloudinary listings and owne
   }
   try {
     assert.equal((await request(app).get("/api/health")).status, 200);
+    assert.equal((await request(app).get("/")).body.service, "DoingGood API");
+    const missingPage = await request(app).get("/dashboard");
+    assert.equal(missingPage.status, 404);
+    assert.equal(missingPage.body.error, "Endpoint not found.");
     const owner = await identity("Owner");
     const stranger = await identity("Stranger");
     const email = `${marker}-login@example.com`;

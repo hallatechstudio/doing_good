@@ -128,6 +128,9 @@ export function createApp() {
     standardHeaders: "draft-8",
     legacyHeaders: false,
   });
+  app.get("/", (_req, res) => {
+    res.json({ service: "DoingGood API", health: "/api/health" });
+  });
   app.get("/api/health", async (_req, res) => {
     await db.$queryRaw`SELECT 1`;
     res.json({ ok: true });
@@ -286,6 +289,9 @@ export function createApp() {
     res.json({ ok: true });
   });
   app.use("/api", (_req, res) => {
+    res.status(404).json({ error: "Endpoint not found." });
+  });
+  app.use((_req, res) => {
     res.status(404).json({ error: "Endpoint not found." });
   });
   app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
