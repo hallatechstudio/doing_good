@@ -120,18 +120,9 @@ export function StoryPage() {
       </section>
 
       <section
-        className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20"
-        aria-labelledby="questions-heading"
+        className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-24"
+        aria-label="Frequently asked questions"
       >
-        <div>
-          <p className="eyebrow text-primary">A few helpful answers</p>
-          <h2 id="questions-heading" className="section-title mt-4">
-            Good to know.
-          </h2>
-          <p className="mt-5 max-w-sm leading-relaxed text-muted-foreground">
-            Keep it simple. Be thoughtful. Give things you would be happy to receive.
-          </p>
-        </div>
         <div className="divide-y divide-border border-y border-border">
           {questions.map(([question, answer]) => (
             <details key={question} className="group py-5">
