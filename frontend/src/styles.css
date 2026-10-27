@@ -70,13 +70,6 @@
   --panel-foreground: oklch(0.985 0 0);
 }
 
-.home-magenta {
-  --primary: #ed4bd5;
-  --primary-foreground: #180814;
-  --accent: #35102f;
-  --ring: rgb(237 75 213 / 60%);
-}
-
 @layer base {
   * {
     border-color: var(--color-border);
