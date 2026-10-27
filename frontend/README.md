@@ -29,9 +29,9 @@ DEV_API_PROXY_TARGET=http://127.0.0.1:3001
 
 The checked-in `vercel.json` forwards `/api/*` to Render before the React page fallback. Browser requests stay on the Vercel origin, so session cookies remain first-party. No wildcard CORS or cross-site cookie settings are needed. Never put Cloudinary secrets, Postmark tokens or database credentials in `VITE_*` variables; Vite includes these public values in browser JavaScript.
 
-On Render, set `APP_URL=https://doinggood-gray.vercel.app` and follow [backend setup](../backend/README.md). Local `.env` files are ignored by Git and are not automatically uploaded to either hosting provider. Configure the same values in each provider's Environment settings, then redeploy.
+On Render, set `APP_URL=https://doinggoodd.vercel.app` and follow [backend setup](../backend/README.md). Local `.env` files are ignored by Git and are not automatically uploaded to either hosting provider. Configure the same values in each provider's Environment settings, then redeploy.
 
-After deployment, `https://doinggood-gray.vercel.app/api/health` should return JSON with `ok: true`. Changing frontend variables or the proxy target in `vercel.json` requires a new Vercel deployment. Changing Render settings requires restarting/redeploying the service.
+After deployment, `https://doinggoodd.vercel.app/api/health` should return JSON with `ok: true`. Changing frontend variables or the proxy target in `vercel.json` requires a new Vercel deployment. Changing Render settings requires restarting/redeploying the service.
 
 ## Commands and features
 

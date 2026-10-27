@@ -45,7 +45,7 @@ Old login-code and request/message tables and migration history are preserved to
 - Start Command: `npm start`
 - Health Check Path: `/api/health`
 - `NODE_ENV=production`
-- `APP_URL=https://doinggood-gray.vercel.app` (the frontend origin, not the Render URL)
+- `APP_URL=https://doinggoodd.vercel.app` (the frontend origin, not the Render URL)
 - `TRUST_PROXY=1` for Render's proxy
 - Set `DATABASE_URL`, Postmark and Cloudinary credentials in Render's environment settings. Render provides `PORT`.
 
@@ -53,4 +53,4 @@ The backend is API-only and never reads `frontend/dist`. Its root returns API me
 
 No cross-site cookie or wildcard CORS configuration is required for this proxy setup. Direct browser calls to the Render URL are not the configured frontend connection. Use the Vercel `/api` URL for browser authentication and API requests.
 
-Both applications use their own ignored `.env` files locally. Configure these values in Render and Vercel environment settings for deployment; Git does not upload the local files. On Vercel set `VITE_API_URL=/api`. The public Render destination is configured in `frontend/vercel.json`. On Render set `APP_URL=https://doinggood-gray.vercel.app`, `NODE_ENV=production`, `TRUST_PROXY=1`, and the existing database, Postmark and Cloudinary secrets.
+Both applications use their own ignored `.env` files locally. Configure these values in Render and Vercel environment settings for deployment; Git does not upload the local files. On Vercel set `VITE_API_URL=/api`. The public Render destination is configured in `frontend/vercel.json`. On Render set `APP_URL=https://doinggoodd.vercel.app`, `NODE_ENV=production`, `TRUST_PROXY=1`, and the existing database, Postmark and Cloudinary secrets.
