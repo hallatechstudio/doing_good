@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useAuthDialog } from "@/components/auth-dialog";
 import { CATEGORIES } from "@/lib/site";
 import type { Item } from "@/lib/types";
+import { MembershipSection } from "@/components/membership";
 
 export function Index() {
   const items = useLoaderData() as Item[];
@@ -16,11 +17,14 @@ export function Index() {
   const { openAuth } = useAuthDialog();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | null>(null);
+  const [pricing, setPricing] = useState("all");
   const [requestItem, setRequestItem] = useState<Item | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter((item) => {
+      if (pricing === "free" && (item.price_kobo || 0) > 0) return false;
+      if (pricing === "paid" && !(item.price_kobo! > 0)) return false;
       if (category && item.category !== category) return false;
       if (!q) return true;
       return (
@@ -29,11 +33,11 @@ export function Index() {
         item.location.toLowerCase().includes(q)
       );
     });
-  }, [items, query, category]);
+  }, [items, query, category, pricing]);
 
   return (
     <>
-      <title>DoingGood - Free items for people who need them in Lagos</title>
+      <title>DoingGood - Give, sell and find items in Lagos</title>
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-20 sm:px-6 sm:pt-28 md:pb-24">
@@ -41,8 +45,8 @@ export function Index() {
             Your nothing is <span className="text-primary">someone's everything.</span>
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
-            DoingGood helps people give what they don't need to people who need it. Furniture,
-            clothes, appliances, books and more, matched across Lagos.
+            Give it forward or give it a second life. Find free and paid furniture, clothes,
+            appliances, books and more from people across Lagos.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             {userId ? (
@@ -82,7 +86,23 @@ export function Index() {
             </div>
           </div>
 
-          <div className="mt-6 flex flex-wrap gap-2">
+          <div role="group" aria-label="Item price" className="mt-6 flex flex-wrap gap-2">
+            {[
+              ["all", "All items"],
+              ["free", "Free items"],
+              ["paid", "Paid items"],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                onClick={() => setPricing(value!)}
+                aria-pressed={pricing === value}
+                className={`rounded-lg border px-4 py-2 text-sm font-semibold ${pricing === value ? "border-primary bg-primary/15 text-primary" : "border-border text-muted-foreground"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
             <button
               onClick={() => setCategory(null)}
               className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
@@ -122,6 +142,7 @@ export function Index() {
         </div>
       </section>
 
+      <MembershipSection />
       <RequestModal
         item={requestItem}
         open={requestItem !== null}

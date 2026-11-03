@@ -10,5 +10,6 @@ export type Item = {
   location: string;
   photos: string[];
   status: string;
+  price_kobo?: number;
   created_at: string;
 };

@@ -9,7 +9,7 @@ export function SiteFooter() {
             <span className="text-primary">Doing</span>Good
           </p>
           <p className="mt-3 max-w-xs text-sm text-muted-foreground">
-            We help people give what they don't need to those who need it most.
+            Give, sell and find useful items from people across Lagos.
           </p>
         </div>
         <div className="text-sm">
@@ -43,10 +43,10 @@ export function SiteFooter() {
           </ul>
         </div>
         <div className="text-sm">
-          <p className="eyebrow text-muted-foreground">Always free</p>
+          <p className="eyebrow text-muted-foreground">Give. Sell. Find.</p>
           <p className="mt-4 text-muted-foreground">
-            Free to list. Free to request. DoingGood only coordinates the match - listing and
-            requesting cost nothing.
+            Listing is free. Membership gives access to request free items for ₦20,000 per 30 days.
+            Paid items have their own listed price, with no membership required.
           </p>
           <a
             href="https://doinggoodinitiative.com"

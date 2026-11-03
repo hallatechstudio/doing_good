@@ -8,17 +8,17 @@ const journeys = {
     {
       icon: Search,
       title: "Find something you need.",
-      body: "Explore furniture, clothes, books and everyday essentials from neighbours across Lagos. Browse and filter freely, without an account.",
+      body: "Browse free and paid furniture, clothes, books and essentials across Lagos without an account. Filter by price or category to find what works for you.",
     },
     {
       icon: HandHeart,
       title: "Request the item.",
-      body: "Open a listing and tap Request. If you are new, create a free account first - it takes a minute. Then message the donor on WhatsApp to ask whether the item is available and share what you need.",
+      body: "For free items, join the ₦20,000 membership for 30 days, then contact the donor on WhatsApp. For paid items, sign in and use platform checkout when available. Membership is not needed to buy paid items.",
     },
     {
       icon: Truck,
       title: "Arrange the logistics.",
-      body: "Use the same WhatsApp conversation to agree on pick-up or delivery, the neighbourhood and a suitable time. Discuss any delivery costs before confirming. Agree on arrangements directly; DoingGood does not book deliveries.",
+      body: "Arrange collection or delivery directly. For paid orders, confirm receipt in Orders only after checking your item. A seller's delivery notice starts a 24-hour review after email notification. Open a dispute before the deadline to freeze payout for review. DoingGood does not book deliveries.",
     },
   ],
   give: [
@@ -30,12 +30,12 @@ const journeys = {
     {
       icon: Package,
       title: "Give it a good introduction.",
-      body: "Sign in with your email and password, add your WhatsApp number, upload clear photos and describe the condition honestly. Choose a category and your neighbourhood in Lagos. Listing is always free.",
+      body: "Sign in, add your WhatsApp number, choose free or paid, and upload honest photos and descriptions. For a paid item, set a naira price and add your verified payout account in Orders. Listing is free.",
     },
     {
       icon: Truck,
       title: "Plan pick-up or delivery.",
-      body: "Chat with the recipient on WhatsApp to agree on the collection point, delivery arrangements and timing. Then mark the item matched or given in your dashboard.",
+      body: "For free items, arrange collection on WhatsApp and update the listing status. For paid orders, report delivery with evidence in Orders. Payout follows buyer confirmation or an undisputed 24-hour review; a dispute pauses release until an admin resolves it.",
     },
   ],
 };

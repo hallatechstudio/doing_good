@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { MapPin, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { categoryLabel, conditionLabel, STATUS_LABELS } from "@/lib/site";
+import { categoryLabel, conditionLabel, itemPrice, STATUS_LABELS } from "@/lib/site";
 import type { Item } from "@/lib/types";
 
 export function ItemCard({ item, onRequest }: { item: Item; onRequest: (item: Item) => void }) {
@@ -30,6 +30,7 @@ export function ItemCard({ item, onRequest }: { item: Item; onRequest: (item: It
         )}
       </Link>
       <div className="flex flex-1 flex-col gap-2 p-4">
+        <p className="text-lg font-bold text-primary">{itemPrice(item.price_kobo)}</p>
         <div className="flex items-start justify-between gap-3">
           <Link
             to={`/items/${item.id}`}
@@ -47,9 +48,15 @@ export function ItemCard({ item, onRequest }: { item: Item; onRequest: (item: It
             <MapPin className="size-3.5" />
             {item.location}
           </span>
-          <Button size="sm" variant="outline" onClick={() => onRequest(item)}>
-            <MessageCircle className="size-4" /> Request item
-          </Button>
+          {(item.price_kobo || 0) > 0 ? (
+            <Button asChild size="sm" variant="outline">
+              <Link to={`/items/${item.id}`}>View item</Link>
+            </Button>
+          ) : (
+            <Button size="sm" variant="outline" onClick={() => onRequest(item)}>
+              <MessageCircle className="size-4" /> Request item
+            </Button>
+          )}
         </div>
       </div>
     </article>

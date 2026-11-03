@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 const questions = [
   [
     "Does it cost anything?",
-    "Listing and requesting items are completely free. DoingGood coordinates the match. Pick-up or delivery arrangements are agreed separately; submitting a request does not book a delivery.",
+    "Listing is free. Items can be free or paid. Membership costs ₦20,000 for 30 days of access to request free items, subject to availability and donor approval. Paid items have their own price and do not require membership. Delivery is arranged separately.",
   ],
   [
     "Do I need an account to browse or request?",
-    "You can browse listings without an account, but you need a free one to request or give an item. Sign up with your email and password, add your WhatsApp number, then contact donors on WhatsApp or list what you no longer need.",
+    "Browse without an account. Create an account to list, buy or join membership. Active members can request free items and contact donors. Sellers add a verified payout account before buyers can pay for a listing.",
   ],
   [
     "What can I give?",
@@ -17,7 +17,7 @@ const questions = [
   ],
   [
     "What happens after I request an item?",
-    "Tap Request this item - you will be asked to create an account or sign in first, then continue on WhatsApp to message the donor. Agree on availability, pick-up or delivery together. DoingGood does not reserve items, book deliveries or collect payments.",
+    "For free items, sign in with an active membership and contact the donor on WhatsApp. For paid items, use platform checkout when available and manage delivery in Orders. Confirm receipt after checking the item, or open a dispute within the 24-hour review window after a seller's delivery notice. Disputes freeze payout for review.",
   ],
   [
     "Where does DoingGood operate?",

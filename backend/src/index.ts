@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { createApp } from "./app.js";
 import { db } from "./db.js";
+import { processCommerce } from "./commerce.js";
 
 if (process.env["NODE_ENV"] === "production" && !process.env["APP_URL"]?.startsWith("https://")) {
   throw new Error("Production APP_URL must use HTTPS.");
@@ -10,8 +11,14 @@ await db.$connect();
 const server = app.listen(Number(process.env["PORT"] || 3001), "0.0.0.0", () =>
   console.log("DoingGood API listening"),
 );
+const worker = setInterval(() => {
+  void processCommerce().catch(() => console.error("Commerce worker will retry."));
+}, 60000);
+worker.unref();
+void processCommerce().catch(() => console.error("Commerce worker will retry."));
 for (const signal of ["SIGINT", "SIGTERM"])
   process.on(signal, () => {
+    clearInterval(worker);
     server.close(() => {
       void db.$disconnect().then(() => process.exit(0));
     });

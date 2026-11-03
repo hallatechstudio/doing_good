@@ -8,6 +8,7 @@ const profile = {
   email: "neighbour@example.com",
   full_name: "Tolu Ade",
   phone: "",
+  membership_until: "2099-01-01T00:00:00.000Z",
 };
 const item = {
   id: "10000000-0000-4000-8000-000000000001",
@@ -27,9 +28,22 @@ vi.mock("@/lib/api", () => ({
   ApiError: class extends Error {},
   AUTH_EVENT: "doinggood:auth",
   currentUser: vi.fn(async () => (state.signedIn ? profile : null)),
+  commerceSettings: vi.fn(async () => ({
+    membership_required: true,
+    membership_checkout: true,
+    protected_checkout: true,
+    membership_price_kobo: 2000000,
+    membership_days: 30,
+  })),
   listItems: vi.fn(async () => [item]),
   findItem: vi.fn(async (id: string) => (id === item.id ? item : null)),
   getDashboard: vi.fn(async () => ({ profile, listings: [item] })),
+  getOrders: vi.fn(async () => ({
+    admin: false,
+    user_id: profile.id,
+    membership_until: profile.membership_until,
+    orders: [],
+  })),
   signIn: vi.fn(async () => {
     state.signedIn = true;
     window.dispatchEvent(new CustomEvent("doinggood:auth", { detail: profile }));
@@ -65,10 +79,44 @@ function open(path: string) {
 beforeEach(() => {
   state.signedIn = false;
   profile.phone = "";
+  profile.membership_until = "2099-01-01T00:00:00.000Z";
   vi.clearAllMocks();
 });
 afterEach(cleanup);
 describe("Connected application routes", () => {
+  it("filters free and paid items and shows membership on the homepage", async () => {
+    const api = await import("@/lib/api");
+    vi.mocked(api.listItems).mockResolvedValueOnce([
+      { ...item, price_kobo: 0 },
+      {
+        ...item,
+        id: "20000000-0000-4000-8000-000000000001",
+        title: "Paid dining chair",
+        price_kobo: 500000,
+      },
+    ]);
+    open("/");
+    await screen.findByRole("link", { name: "Paid dining chair" });
+    expect(screen.getByRole("heading", { name: "Find your next good thing." })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Free items" }));
+    expect(screen.queryByRole("link", { name: "Paid dining chair" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: item.title })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Paid items" }));
+    expect(screen.queryByRole("link", { name: item.title })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Paid dining chair" })).toBeInTheDocument();
+  });
+  it("requires active membership before exposing free-item contact", async () => {
+    state.signedIn = true;
+    profile.membership_until = "2000-01-01T00:00:00.000Z";
+    open("/items/" + item.id);
+    fireEvent.click(await screen.findByRole("button", { name: "Request this item" }));
+    await screen.findByRole("heading", { name: "Membership for free items" });
+    expect(screen.queryByRole("link", { name: "Continue on WhatsApp" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View membership" })).toHaveAttribute(
+      "href",
+      "/#membership",
+    );
+  });
   it("opens the guide and switches between giving and requesting", async () => {
     open("/how-it-works");
     await screen.findByRole("heading", { name: "Small steps. Meaningful change." });

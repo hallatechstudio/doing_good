@@ -29,6 +29,12 @@ export function SiteHeader() {
 
         <nav className="flex items-center gap-2 sm:gap-4">
           <Link
+            to="/#membership"
+            className="hidden px-2 text-sm font-medium text-muted-foreground hover:text-foreground lg:block"
+          >
+            Membership
+          </Link>
+          <Link
             to="/"
             className="hidden px-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground md:block"
           >

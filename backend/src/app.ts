@@ -9,6 +9,9 @@ import { db } from "./db.js";
 import { sendEmail } from "./email.js";
 import { hashPassword, verifyPassword } from "./passwords.js";
 import { uploadListingPhotos, removeUploadedPhotos } from "./cloudinary.js";
+import { HttpError } from "./errors.js";
+import { isMember, mountCommerce, paymentWebhook } from "./commerce.js";
+import { paymentsEnabled } from "./paystack.js";
 
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
 const production = process.env["NODE_ENV"] === "production";
@@ -28,6 +31,8 @@ const profileSelect = {
   full_name: true,
   phone: true,
   created_at: true,
+  membership_until: true,
+  payout_name: true,
 } satisfies Prisma.UserSelect;
 const phoneInput = z
   .string()
@@ -42,6 +47,7 @@ const phoneInput = z
       ),
   );
 const listingInput = z.object({
+  price_kobo: z.union([z.literal(0), z.number().int().min(10000).max(100_000_000)]).default(0),
   whatsapp: phoneInput,
   title: z.string().trim().min(3).max(150),
   description: z.string().trim().min(10).max(5000),
@@ -67,14 +73,6 @@ const listingInput = z.object({
     .min(1)
     .max(5),
 });
-class HttpError extends Error {
-  constructor(
-    public status: number,
-    message: string,
-  ) {
-    super(message);
-  }
-}
 async function user(req: Request) {
   const token = req.cookies?.[cookieName];
   if (typeof token !== "string") return null;
@@ -100,7 +98,7 @@ const itemView = (
   return {
     ...rest,
     donor_name: owner.full_name,
-    donor_whatsapp: signedIn ? owner.phone : "",
+    donor_whatsapp: signedIn && !(Number(rest["price_kobo"]) > 0) ? owner.phone : "",
   };
 };
 export function createApp() {
@@ -120,6 +118,11 @@ export function createApp() {
     }),
   );
   app.use(cookieParser());
+  app.post(
+    "/api/payments/webhook",
+    express.raw({ type: "application/json", limit: "1mb" }),
+    paymentWebhook,
+  );
   app.use(
     "/api",
     rateLimit({ windowMs: 60000, limit: 120, standardHeaders: "draft-8", legacyHeaders: false }),
@@ -138,6 +141,7 @@ export function createApp() {
     next();
   });
   app.use(express.json({ limit: "8mb" }));
+  mountCommerce(app, requireUser);
   const authLimit = rateLimit({
     windowMs: 15 * 60000,
     limit: 20,
@@ -264,7 +268,8 @@ export function createApp() {
   });
   app.get("/api/items", async (req, res) => {
     const page = z.coerce.number().int().min(0).max(10000).default(0).parse(req.query["page"]);
-    const signedIn = Boolean(await user(req));
+    const visitor = await user(req);
+    const signedIn = Boolean(visitor && (!paymentsEnabled() || isMember(visitor.membership_until)));
     const items = await db.item.findMany({
       where: { status: { in: ["available", "pending"] } },
       include: { owner: { select: { full_name: true, phone: true } } },
@@ -277,7 +282,8 @@ export function createApp() {
   app.get("/api/items/:id", async (req, res) => {
     if (!uuid.safeParse(req.params["id"]).success)
       return void res.status(404).json({ error: "Item not found." });
-    const signedIn = Boolean(await user(req));
+    const visitor = await user(req);
+    const signedIn = Boolean(visitor && (!paymentsEnabled() || isMember(visitor.membership_until)));
     const item = await db.item.findUnique({
       where: { id: String(req.params["id"]) },
       include: { owner: { select: { full_name: true, phone: true } } },
@@ -341,11 +347,18 @@ export function createApp() {
     const { status } = z
       .object({ status: z.enum(["available", "pending", "matched", "given"]) })
       .parse(req.body);
-    const updated = await db.item.updateMany({
-      where: { id, owner_id: profile.id },
-      data: { status },
+    await db.$transaction(async (tx) => {
+      // Serialize seller edits with checkout's inventory reservation.
+      const owned = await tx.$queryRaw<
+        { id: string }[]
+      >`SELECT id FROM "Item" WHERE id = ${id}::uuid AND owner_id = ${profile.id}::uuid FOR UPDATE`;
+      if (!owned.length) throw new HttpError(404, "Listing not found.");
+      const activeOrder = await tx.order.findFirst({
+        where: { item_id: id, status: { notIn: ["refunded", "payment_expired"] } },
+      });
+      if (activeOrder) throw new HttpError(409, "This item's status is managed through its order.");
+      await tx.item.update({ where: { id }, data: { status } });
     });
-    if (!updated.count) throw new HttpError(404, "Listing not found.");
     res.json({ ok: true });
   });
   app.use("/api", (_req, res) => {

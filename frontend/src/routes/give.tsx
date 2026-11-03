@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CATEGORIES, CONDITIONS } from "@/lib/site";
-import { addListing, photoData, currentUser } from "@/lib/api";
+import { addListing, photoData, currentUser, commerceSettings } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
 export function GivePage() {
@@ -16,6 +16,19 @@ export function GivePage() {
   const [photos, setPhotos] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [phone, setPhone] = useState("");
+  const [pricing, setPricing] = useState("free");
+  const [paidListingsAvailable, setPaidListingsAvailable] = useState(false);
+  useEffect(() => {
+    let active = true;
+    void commerceSettings()
+      .then(() => {
+        if (active) setPaidListingsAvailable(true);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
   useEffect(() => {
     let active = true;
     void currentUser()
@@ -70,8 +83,9 @@ export function GivePage() {
         condition: String(form.get("condition")),
         location: String(form.get("location")).trim(),
         photos: images,
+        price_kobo: pricing === "paid" ? Math.round(Number(form.get("price")) * 100) : 0,
       });
-      toast.success("Your item is listed. Thank you for giving!");
+      toast.success("Your item is listed.");
       navigate("/dashboard");
     } catch (error) {
       toast.error(
@@ -84,7 +98,7 @@ export function GivePage() {
   const selectClass = "h-11 w-full rounded-md border border-input bg-background px-3 text-sm";
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-12 sm:py-20">
-      <title>Give an item - DoingGood</title>
+      <title>Give or sell an item - DoingGood</title>
       <HeartHandshake className="size-8 text-primary" />
       <p className="eyebrow mt-6 text-primary">Make room for good</p>
       <h1 className="mt-3 text-4xl font-extrabold tracking-tight">
@@ -93,7 +107,8 @@ export function GivePage() {
         <span className="text-primary">A new beginning for someone.</span>
       </h1>
       <p className="mt-4 text-muted-foreground">
-        List your item for free. People can contact you on WhatsApp to arrange collection.
+        Give your item away or set a price in naira. Listing is free. Buyers of paid items use
+        platform checkout; members contact donors on WhatsApp for free items.
       </p>
       <form onSubmit={submit} className="mt-10 space-y-6">
         <div className="space-y-2">
@@ -114,6 +129,41 @@ export function GivePage() {
           </p>
         </div>
         <fieldset disabled={busy} className="space-y-6 disabled:opacity-60">
+          <div className="space-y-3 rounded-xl border border-border bg-card p-5">
+            <Label htmlFor="listing-type">Give away or sell?</Label>
+            <select
+              id="listing-type"
+              value={pricing}
+              onChange={(e) => setPricing(e.target.value)}
+              className={selectClass}
+            >
+              <option value="free">Free item — give it away</option>
+              <option value="paid" disabled={!paidListingsAvailable}>
+                Paid item — set a price
+              </option>
+            </select>
+            {pricing === "paid" && (
+              <>
+                <Label htmlFor="listing-price">Item price (₦)</Label>
+                <Input
+                  id="listing-price"
+                  name="price"
+                  type="number"
+                  required
+                  min="100"
+                  max="1000000"
+                  step="0.01"
+                  placeholder="e.g. 25000"
+                />
+                <p className="text-xs leading-6 text-muted-foreground">
+                  Add your verified payout account in Orders before a buyer can check out. The
+                  listed price is the item total; arrange delivery separately before purchase.
+                  Payments remain pending release until receipt is confirmed or the undisputed
+                  24-hour delivery review ends.
+                </p>
+              </>
+            )}
+          </div>
           <div>
             <Label htmlFor="photos">Photos</Label>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -218,7 +268,11 @@ export function GivePage() {
             </p>
           </div>
           <Button type="submit" variant="hero" size="lg" className="w-full">
-            {busy ? "Uploading and listing…" : "List my item for free"}
+            {busy
+              ? "Uploading and listing…"
+              : pricing === "paid"
+                ? "List my item for sale"
+                : "List my free item"}
           </Button>
         </fieldset>
       </form>

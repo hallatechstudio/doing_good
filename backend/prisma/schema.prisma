@@ -14,6 +14,12 @@ model User {
   full_name String
   phone     String @default("")
   created_at DateTime @default(now())
+  membership_until DateTime?
+  payout_recipient String?
+  payout_name String?
+  purchases Purchase[]
+  buying Order[] @relation("buyer")
+  selling Order[] @relation("seller")
   password_reset PasswordReset?
   sessions Session[]
   items Item[]
@@ -49,6 +55,8 @@ model Item {
   condition String
   location String
   photos String[]
+  price_kobo Int @default(0)
+  orders Order[]
   status String @default("available")
   created_at DateTime @default(now())
   requests ItemRequest[]
@@ -101,4 +109,45 @@ model PasswordReset {
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
   expires_at DateTime
   @@index([expires_at])
+}
+
+model Purchase {
+  id String @id @default(uuid()) @db.Uuid
+  reference String @unique
+  user_id String @db.Uuid
+  user User @relation(fields: [user_id], references: [id], onDelete: Restrict)
+  amount Int
+  status String @default("pending")
+  created_at DateTime @default(now())
+  paid_at DateTime?
+  checkout_url String?
+}
+
+model Order {
+  id String @id @default(uuid()) @db.Uuid
+  reference String @unique
+  item_id String @db.Uuid
+  item Item @relation(fields: [item_id], references: [id], onDelete: Restrict)
+  buyer_id String @db.Uuid
+  buyer User @relation("buyer", fields: [buyer_id], references: [id], onDelete: Restrict)
+  seller_id String @db.Uuid
+  seller User @relation("seller", fields: [seller_id], references: [id], onDelete: Restrict)
+  amount Int
+  recipient String
+  status String @default("pending_payment")
+  checkout_url String?
+  created_at DateTime @default(now())
+  paid_at DateTime?
+  delivered_at DateTime?
+  release_at DateTime?
+  delivery_note String?
+  dispute_reason String?
+  resolution_note String?
+  transfer_reference String @unique
+  transfer_code String?
+  refund_id String?
+  notified_at DateTime?
+  @@index([buyer_id, created_at])
+  @@index([seller_id, created_at])
+  @@index([status, release_at])
 }

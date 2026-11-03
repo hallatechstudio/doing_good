@@ -21,7 +21,18 @@ export const STATUS_LABELS: Record<string, string> = {
   pending: "On hold",
   matched: "Matched",
   given: "Given",
+  reserved: "Reserved",
+  sold: "Sold",
 };
+
+export const itemPrice = (kobo = 0) =>
+  kobo > 0
+    ? new Intl.NumberFormat("en-NG", {
+        style: "currency",
+        currency: "NGN",
+        maximumFractionDigits: 2,
+      }).format(kobo / 100)
+    : "Free";
 
 export function categoryLabel(value: string) {
   return CATEGORIES.find((c) => c.value === value)?.label ?? value;

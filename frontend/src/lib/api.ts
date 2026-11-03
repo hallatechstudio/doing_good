@@ -1,5 +1,12 @@
 import type { Item } from "./types";
-export type Profile = { id: string; email: string; full_name: string; phone: string };
+export type Profile = {
+  id: string;
+  email: string;
+  full_name: string;
+  phone: string;
+  membership_until?: string | null;
+  payout_name?: string | null;
+};
 type Dashboard = {
   profile: Profile;
   listings: Item[];
@@ -70,12 +77,52 @@ export const getDashboard = () => api<Dashboard>("/dashboard");
 export const addListing = (
   data: Pick<Item, "title" | "description" | "category" | "condition" | "location" | "photos"> & {
     whatsapp: string;
+    price_kobo?: number;
   },
 ) => api<Item>("/items", "POST", data);
 export const updateListingStatus = (id: string, status: string) =>
   api(`/items/${id}/status`, "PATCH", { status });
 export const updateProfile = (full_name: string, phone: string) =>
   api<Profile>("/profile", "PATCH", { full_name, phone });
+export const commerceSettings = () =>
+  api<{
+    membership_price_kobo: number;
+    membership_days: number;
+    membership_checkout: boolean;
+    protected_checkout: boolean;
+    membership_required: boolean;
+  }>("/commerce");
+export const membershipCheckout = () => api<{ url: string }>("/membership/checkout", "POST", {});
+export const buyItem = (item_id: string) => api<{ url: string }>("/orders", "POST", { item_id });
+export const verifyCheckout = (reference: string) => api("/payments/verify", "POST", { reference });
+export type Order = {
+  id: string;
+  item_id: string;
+  title: string;
+  photo?: string;
+  amount: number;
+  buyer_id: string;
+  seller_id: string;
+  buyer: string;
+  seller: string;
+  contact: string;
+  status: string;
+  reference: string;
+  created_at: string;
+  release_at: string | null;
+  delivery_note: string | null;
+  dispute_reason: string | null;
+  resolution_note: string | null;
+};
+export const getOrders = () =>
+  api<{ admin: boolean; user_id: string; membership_until: string | null; orders: Order[] }>(
+    "/orders",
+  );
+export const orderAction = (id: string, action: string, data: unknown = {}) =>
+  api(`/orders/${id}/${action}`, "POST", data);
+export const payoutBanks = () => api<{ name: string; code: string }[]>("/payout/banks");
+export const savePayout = (bank_code: string, account_number: string) =>
+  api<{ name: string }>("/payout/account", "POST", { bank_code, account_number });
 export async function photoData(file: File): Promise<string> {
   const url = URL.createObjectURL(file);
   try {

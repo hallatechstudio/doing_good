@@ -60,12 +60,17 @@ export function DashboardPage() {
             Manage your listings and WhatsApp contact details.
           </p>
         </div>
-        <Button asChild variant="hero">
-          <Link to="/give">
-            <Plus className="size-4" />
-            Give an item
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-3">
+          <Button asChild variant="outline">
+            <Link to="/orders">Orders & membership</Link>
+          </Button>
+          <Button asChild variant="hero">
+            <Link to="/give">
+              <Plus className="size-4" />
+              Give an item
+            </Link>
+          </Button>
+        </div>
       </div>
       {!data.profile.phone && (
         <p role="status" className="mt-6 rounded-lg border border-primary/20 bg-primary/10 p-4">
@@ -133,20 +138,27 @@ export function DashboardPage() {
                     <select
                       aria-label={"Status for " + item.title}
                       value={item.status}
-                      disabled={busy}
+                      disabled={busy || ["reserved", "sold"].includes(item.status)}
                       onChange={(event) => status(item.id, event.target.value)}
                       className="rounded-lg border border-input bg-background p-2"
                     >
-                      {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
+                      {Object.entries(STATUS_LABELS)
+                        .filter(
+                          ([value]) =>
+                            !["reserved", "sold"].includes(value) || value === item.status,
+                        )
+                        .map(([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ))}
                     </select>
                   </label>
                 </div>
                 <p className="mt-4 text-sm text-muted-foreground">
-                  Arrange collection on WhatsApp, then update the status here.
+                  {(item.price_kobo || 0) > 0
+                    ? "Manage payment and delivery in Orders. Add your payout account there before a buyer checks out."
+                    : "Arrange collection on WhatsApp, then update the status here."}
                 </p>
               </article>
             ))}
