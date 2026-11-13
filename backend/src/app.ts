@@ -16,6 +16,10 @@ const hash = (value: string) => createHash("sha256").update(value).digest("hex")
 const production = process.env["NODE_ENV"] === "production";
 const cookieName = production ? "__Host-doinggood" : "doinggood_session";
 const cookieOptions = { httpOnly: true, secure: production, sameSite: "lax" as const, path: "/" };
+const allowedOrigins = new Set([
+  new URL(process.env["APP_URL"] || "http://localhost:5173").origin,
+  "https://doinggood-one.vercel.app",
+]);
 const emailInput = z
   .string()
   .trim()
@@ -173,6 +177,18 @@ export function createApp() {
     }),
   );
   app.use(cookieParser());
+  app.use((req, res, next) => {
+    const origin = req.get("origin");
+    if (origin && allowedOrigins.has(origin)) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+      res.setHeader("Vary", "Origin");
+      res.setHeader("Access-Control-Allow-Methods", "GET,HEAD,POST,PATCH,OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    }
+    if (req.method === "OPTIONS") return void res.sendStatus(204);
+    next();
+  });
   app.post(
     "/api/payments/webhook",
     express.raw({ type: "application/json", limit: "1mb" }),
@@ -186,8 +202,7 @@ export function createApp() {
     res.setHeader("Cache-Control", "no-store");
     if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) {
       const origin = req.get("origin");
-      const expected = new URL(process.env["APP_URL"] || "http://localhost:5173").origin;
-      if (origin && origin !== expected)
+      if (origin && !allowedOrigins.has(origin))
         return next(new HttpError(403, "Request origin is not allowed."));
       if (!origin && req.get("sec-fetch-site") === "cross-site")
         return next(new HttpError(403, "Request origin is not allowed."));
