@@ -1,21 +1,25 @@
 import "dotenv/config";
 import { createApp } from "./app.js";
 import { db } from "./db.js";
-import { processCommerce } from "./commerce.js";
+import { processCommerce, processWalletWithdrawals } from "./commerce.js";
 
 if (process.env["NODE_ENV"] === "production" && !process.env["APP_URL"]?.startsWith("https://")) {
   throw new Error("Production APP_URL must use HTTPS.");
 }
 const app = createApp();
 await db.$connect();
-const server = app.listen(Number(process.env["PORT"] || 3001), "0.0.0.0", () =>
-  console.log("DoingGood API listening"),
+const server = app.listen(
+  Number(process.env["PORT"] || 3001),
+  process.env["HOST"] || "0.0.0.0",
+  () => console.log("DoingGood API listening"),
 );
 const worker = setInterval(() => {
   void processCommerce().catch(() => console.error("Commerce worker will retry."));
+  void processWalletWithdrawals().catch(() => console.error("Withdrawal worker will retry."));
 }, 60000);
 worker.unref();
 void processCommerce().catch(() => console.error("Commerce worker will retry."));
+void processWalletWithdrawals().catch(() => console.error("Withdrawal worker will retry."));
 for (const signal of ["SIGINT", "SIGTERM"])
   process.on(signal, () => {
     clearInterval(worker);

@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { Link, redirect, useLoaderData, useRevalidator } from "react-router-dom";
-import { Plus, Package, UserRound } from "lucide-react";
+import { Plus, Package, UserRound, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError, getDashboard, updateListingStatus, updateProfile } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { STATUS_LABELS } from "@/lib/site";
+import { EditListingDialog } from "@/components/edit-listing-dialog";
+import type { Item } from "@/lib/types";
 export async function dashboardLoader() {
   try {
     return await getDashboard();
@@ -21,6 +23,7 @@ export function DashboardPage() {
   const revalidator = useRevalidator();
   const [tab, setTab] = useState(data.profile.phone ? "listings" : "profile");
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState<Item | null>(null);
   async function status(id: string, value: string) {
     setBusy(true);
     try {
@@ -62,7 +65,7 @@ export function DashboardPage() {
         </div>
         <div className="flex flex-wrap gap-3">
           <Button asChild variant="outline">
-            <Link to="/orders">Orders & membership</Link>
+            <Link to="/cart">View cart</Link>
           </Button>
           <Button asChild variant="hero">
             <Link to="/give">
@@ -133,33 +136,35 @@ export function DashboardPage() {
                     </Link>
                     <p className="mt-1 text-sm text-muted-foreground">{item.location}</p>
                   </div>
-                  <label className="text-sm">
-                    <span className="sr-only">Status for {item.title}</span>
-                    <select
-                      aria-label={"Status for " + item.title}
-                      value={item.status}
-                      disabled={busy || ["reserved", "sold"].includes(item.status)}
-                      onChange={(event) => status(item.id, event.target.value)}
-                      className="rounded-lg border border-input bg-background p-2"
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={busy}
+                      onClick={() => setEditing(item)}
                     >
-                      {Object.entries(STATUS_LABELS)
-                        .filter(
-                          ([value]) =>
-                            !["reserved", "sold"].includes(value) || value === item.status,
-                        )
-                        .map(([value, label]) => (
+                      <Pencil className="size-4" />
+                      Edit
+                    </Button>
+                    <label className="text-sm">
+                      <span className="sr-only">Status for {item.title}</span>
+                      <select
+                        aria-label={"Status for " + item.title}
+                        value={item.status === "sold" ? "sold" : "available"}
+                        disabled={busy}
+                        onChange={(event) => status(item.id, event.target.value)}
+                        className="rounded-lg border border-input bg-background p-2"
+                      >
+                        {(["available", "sold"] as const).map((value) => (
                           <option key={value} value={value}>
-                            {label}
+                            {STATUS_LABELS[value]}
                           </option>
                         ))}
-                    </select>
-                  </label>
+                      </select>
+                    </label>
+                  </div>
                 </div>
-                <p className="mt-4 text-sm text-muted-foreground">
-                  {(item.price_kobo || 0) > 0
-                    ? "Manage payment and delivery in Orders. Add your payout account there before a buyer checks out."
-                    : "Arrange collection on WhatsApp, then update the status here."}
-                </p>
               </article>
             ))}
           </div>
@@ -206,6 +211,16 @@ export function DashboardPage() {
           </form>
         )}
       </div>
+      {editing && (
+        <EditListingDialog
+          item={editing}
+          open={true}
+          onOpenChange={(open) => !open && setEditing(null)}
+          onSaved={() => {
+            void revalidator.revalidate();
+          }}
+        />
+      )}
     </div>
   );
 }

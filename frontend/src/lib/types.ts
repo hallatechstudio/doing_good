@@ -9,7 +9,11 @@ export type Item = {
   condition: string;
   location: string;
   photos: string[];
+  quantity?: number;
   status: string;
   price_kobo?: number;
+  pickup_available?: boolean;
+  delivery_fee_kobo?: number | null;
+  delivery_area?: string | null;
   created_at: string;
 };

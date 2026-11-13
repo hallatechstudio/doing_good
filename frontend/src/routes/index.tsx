@@ -1,20 +1,16 @@
 import { useMemo, useState } from "react";
-import { Link, useLoaderData } from "react-router-dom";
+import { Link, useLoaderData, useNavigate } from "react-router-dom";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ItemCard } from "@/components/item-card";
-import { RequestModal } from "@/components/request-modal";
-import { useAuth } from "@/lib/auth-context";
-import { useAuthDialog } from "@/components/auth-dialog";
+import { ItemDetailsDialog } from "@/components/item-details-dialog";
 import { CATEGORIES } from "@/lib/site";
 import type { Item } from "@/lib/types";
-import { MembershipSection } from "@/components/membership";
 
 export function Index() {
   const items = useLoaderData() as Item[];
-  const { userId } = useAuth();
-  const { openAuth } = useAuthDialog();
+  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [pricing, setPricing] = useState("all");
@@ -37,7 +33,7 @@ export function Index() {
 
   return (
     <>
-      <title>DoingGood - Give, sell and find items in Lagos</title>
+      <title>DoingGood - Give and get items in Lagos</title>
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-20 sm:px-6 sm:pt-28 md:pb-24">
@@ -49,19 +45,9 @@ export function Index() {
             appliances, books and more from people across Lagos.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            {userId ? (
-              <Button variant="hero" size="lg" asChild>
-                <Link to="/give">Give an item</Link>
-              </Button>
-            ) : (
-              <Button
-                variant="hero"
-                size="lg"
-                onClick={() => openAuth({ mode: "signin", next: "/give" })}
-              >
-                Give an item
-              </Button>
-            )}
+            <Button variant="hero" size="lg" asChild>
+              <Link to="/give">Give an item</Link>
+            </Button>
             <Button variant="outline" size="lg" asChild>
               <a href="#browse">Browse new items</a>
             </Button>
@@ -86,7 +72,7 @@ export function Index() {
             </div>
           </div>
 
-          <div role="group" aria-label="Item price" className="mt-6 flex flex-wrap gap-2">
+          <div role="group" aria-label="Item amount" className="mt-6 flex flex-wrap gap-2">
             {[
               ["all", "All items"],
               ["free", "Free items"],
@@ -135,21 +121,23 @@ export function Index() {
           ) : (
             <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {filtered.map((item) => (
-                <ItemCard key={item.id} item={item} onRequest={setRequestItem} />
+                <ItemCard key={item.id} item={item} onView={setRequestItem} />
               ))}
             </div>
           )}
         </div>
       </section>
 
-      <MembershipSection />
-      <RequestModal
-        item={requestItem}
-        open={requestItem !== null}
-        onOpenChange={(open) => {
-          if (!open) setRequestItem(null);
-        }}
-      />
+      {requestItem && (
+        <ItemDetailsDialog
+          key={requestItem.id}
+          item={requestItem}
+          onClose={(destination) => {
+            setRequestItem(null);
+            if (destination) void navigate(destination);
+          }}
+        />
+      )}
     </>
   );
 }

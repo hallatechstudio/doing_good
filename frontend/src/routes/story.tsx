@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 const questions = [
   [
     "Does it cost anything?",
-    "Listing is free. Items can be free or paid. Membership costs ₦20,000 for 30 days of access to request free items, subject to availability and donor approval. Paid items have their own price and do not require membership. Delivery is arranged separately.",
+    "Browsing and listing are free. Free items have no amount; paid items show a clear amount. Delivery is arranged separately, and free items are subject to giver approval.",
   ],
   [
     "Do I need an account to browse or request?",
-    "Browse without an account. Create an account to list, buy or join membership. Active members can request free items and contact donors. Sellers add a verified payout account before buyers can pay for a listing.",
+    "Browse and build your cart without an account. Sign in to get paid items, contact givers or list an item. Givers add payment details directly on their paid listings.",
   ],
   [
     "What can I give?",
@@ -17,7 +17,7 @@ const questions = [
   ],
   [
     "What happens after I request an item?",
-    "For free items, sign in with an active membership and contact the donor on WhatsApp. For paid items, use platform checkout when available and manage delivery in Orders. Confirm receipt after checking the item, or open a dispute within the 24-hour review window after a seller's delivery notice. Disputes freeze payout for review.",
+    "View the item in one scrollable pop-up, then add it to your cart or choose Get this item. Checkout opens on its own page. For free items, sign in and contact the giver directly to arrange collection. For payment or delivery problems, contact support with your reference.",
   ],
   [
     "Where does DoingGood operate?",

@@ -41,6 +41,7 @@ export function AuthForm({
   const [profile, setProfile] = useState<Profile | null>(null);
   const [phone, setPhone] = useState("");
   const [notice, setNotice] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [busy, setBusy] = useState(false);
   function changeMode(next: AuthMode) {
     setMode(next);
@@ -68,6 +69,8 @@ export function AuthForm({
       } else {
         if (mode === "signup" && password !== confirmation)
           throw new Error("Passwords do not match.");
+        if (mode === "signup" && !acceptedTerms)
+          throw new Error("Please agree to the Terms of Use to create an account.");
         const signedIn =
           mode === "signup"
             ? await register(email, password, fullName)
@@ -201,8 +204,9 @@ export function AuthForm({
           </>
         )}
         {!profile && mode === "signup" && (
-          <p className="text-xs leading-5 text-muted-foreground">
-            By creating an account, you agree to our{" "}
+          <label className="flex items-start gap-3 text-xs leading-5 text-muted-foreground">
+            <input type="checkbox" required checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} className="mt-1" />
+            <span>I agree to the{" "}
             <Link
               to="/terms"
               target="_blank"
@@ -220,8 +224,8 @@ export function AuthForm({
             >
               Privacy Policy
             </Link>{" "}
-            to learn how we handle your information. Both links open in a new tab.
-          </p>
+            to learn how we handle your information. Both links open in a new tab.</span>
+          </label>
         )}
         <Button type="submit" variant="hero" className="w-full" disabled={busy}>
           {busy

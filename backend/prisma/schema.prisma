@@ -25,6 +25,8 @@ model User {
   items Item[]
   requests ItemRequest[]
   messages Message[]
+  order_messages OrderMessage[]
+  withdrawals WalletWithdrawal[]
 }
 
 model LoginCode {
@@ -55,7 +57,11 @@ model Item {
   condition String
   location String
   photos String[]
+  quantity Int @default(1)
   price_kobo Int @default(0)
+  pickup_available Boolean @default(true)
+  delivery_fee_kobo Int?
+  delivery_area String?
   orders Order[]
   status String @default("available")
   created_at DateTime @default(now())
@@ -134,6 +140,9 @@ model Order {
   seller User @relation("seller", fields: [seller_id], references: [id], onDelete: Restrict)
   amount Int
   recipient String
+  fulfillment_method String @default("pickup")
+  delivery_fee_kobo Int @default(0)
+  handoff_status String?
   status String @default("pending_payment")
   checkout_url String?
   created_at DateTime @default(now())
@@ -147,7 +156,34 @@ model Order {
   transfer_code String?
   refund_id String?
   notified_at DateTime?
+  messages OrderMessage[]
   @@index([buyer_id, created_at])
   @@index([seller_id, created_at])
   @@index([status, release_at])
+}
+
+model OrderMessage {
+  id String @id @default(uuid()) @db.Uuid
+  order_id String @db.Uuid
+  order Order @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  sender_id String @db.Uuid
+  sender User @relation(fields: [sender_id], references: [id], onDelete: Cascade)
+  text String
+  created_at DateTime @default(now())
+  @@index([order_id, created_at])
+}
+
+model WalletWithdrawal {
+  id String @id @default(uuid()) @db.Uuid
+  user_id String @db.Uuid
+  user User @relation(fields: [user_id], references: [id], onDelete: Restrict)
+  amount Int
+  recipient String
+  reference String @unique
+  transfer_code String?
+  status String @default("queued")
+  created_at DateTime @default(now())
+  completed_at DateTime?
+  @@index([user_id, status, created_at])
+  @@index([status, created_at])
 }

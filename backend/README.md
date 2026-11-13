@@ -1,6 +1,6 @@
 # DoingGood backend
 
-Express, Prisma ORM 7 and Neon PostgreSQL power sign-in, profiles, free/paid listings, membership and orders. Cloudinary stores listing photos. Postmark sends password resets and delivery-review notices. Free-item enquiries happen on WhatsApp; paid orders have a separate delivery/dispute dashboard. See [MARKETPLACE.md](MARKETPLACE.md) for payment availability, setup, worker operation and launch requirements.
+Express, Prisma ORM 7 and Neon PostgreSQL power sign-in, profiles, free/paid listings, cart checkout and internal payment records. Cloudinary stores listing photos. Postmark sends password resets and delivery-review notices. Free-item enquiries happen on WhatsApp; item browsing uses one dialog and checkout uses a separate page. See [MARKETPLACE.md](MARKETPLACE.md) for payment availability, setup, worker operation and launch requirements.
 
 ## Local setup
 
@@ -14,12 +14,18 @@ Requires Node 22.12+ or Node 24. Run commands from this folder.
 
 Keep credentials in this folder's ignored `.env` or the hosting platform's secret settings. Never put database credentials, Cloudinary secrets or Postmark tokens in frontend files or `VITE_*` variables. The optional Postmark account token is used only by its configuration check.
 
+For a localhost-only Paystack sandbox checkout, set `LOCAL_PAYMENTS_ENABLED=true`,
+`PAYMENTS_ENABLED=true`, and the Paystack test secret in backend `.env`. The server accepts this
+only when `APP_URL` is `localhost` or `127.0.0.1`, and never in production. If Paystack rate-limits
+the sandbox account-name lookup, DoingGood allows a local sandbox payout profile so checkout testing
+can continue. Production never uses that fallback.
+
 ## User flows
 
-- Guests browse listings. Signed-in users contact donors through WhatsApp; when membership launches this requires active membership for free items. Opening WhatsApp does not reserve a free item or create a database request. Paid items use the separate order flow when an approved payment arrangement is available.
+- Guests browse listings. Signed-in users contact donors through WhatsApp; there is no subscription requirement. Opening WhatsApp does not reserve a free item or create a database request. Paid items use the separate order flow when an approved payment arrangement is available.
 - Users create accounts and sign in with email and password. Passwords are salted and hashed with scrypt; plaintext passwords and hashes are never returned by the API. New passwords must contain 12–128 characters. HTTP-only sessions expire after 30 days; logout revokes the session.
 - Forgot password sends a one-time Postmark reset link that expires after 30 minutes. Only its hash is stored. Resetting a password revokes every existing session. Users who previously signed in with email codes use this flow to set their first password without losing profiles or listings.
-- After signing in or creating an account, users without a valid WhatsApp number provide their name and international WhatsApp number. They can update it in Profile or while listing an item. Free-listing numbers are shared with signed-in users (active members after launch). Paid-order contact details are shared with the buyer and seller after payment.
+- After signing in or creating an account, users without a valid WhatsApp number provide their name and international WhatsApp number. They can update it in Profile or while listing an item. Free-listing numbers are shared with signed-in users. Paid-order contact details are shared with the buyer and seller after payment.
 - The donor dashboard contains My listings and Profile. Donors update listing status after agreeing arrangements on WhatsApp.
 - Listing creation requires a valid WhatsApp number with country code, such as `+2348012345678`. The server normalizes spaces, parentheses and dashes, and derives owner identity from the session.
 - Up to five compressed JPEG photos are sent to the API. The backend uploads them to Cloudinary and stores only HTTPS image URLs in PostgreSQL. Uploads use account credentials on the server; no unsigned upload preset is required.

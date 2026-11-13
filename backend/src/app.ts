@@ -10,8 +10,7 @@ import { sendEmail } from "./email.js";
 import { hashPassword, verifyPassword } from "./passwords.js";
 import { uploadListingPhotos, removeUploadedPhotos } from "./cloudinary.js";
 import { HttpError } from "./errors.js";
-import { isMember, mountCommerce, paymentWebhook } from "./commerce.js";
-import { paymentsEnabled } from "./paystack.js";
+import { mountCommerce, paymentWebhook } from "./commerce.js";
 
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
 const production = process.env["NODE_ENV"] === "production";
@@ -31,7 +30,6 @@ const profileSelect = {
   full_name: true,
   phone: true,
   created_at: true,
-  membership_until: true,
   payout_name: true,
 } satisfies Prisma.UserSelect;
 const phoneInput = z
@@ -47,7 +45,11 @@ const phoneInput = z
       ),
   );
 const listingInput = z.object({
+  quantity: z.number().int().min(1).max(10000).default(1),
   price_kobo: z.union([z.literal(0), z.number().int().min(10000).max(100_000_000)]).default(0),
+  pickup_available: z.boolean().default(true),
+  delivery_fee_kobo: z.number().int().min(0).max(10_000_000).nullable().default(null),
+  delivery_area: z.string().trim().min(2).max(150).nullable().default(null),
   whatsapp: phoneInput,
   title: z.string().trim().min(3).max(150),
   description: z.string().trim().min(10).max(5000),
@@ -73,6 +75,35 @@ const listingInput = z.object({
     .min(1)
     .max(5),
 });
+const photoEntry = z.union([
+  z.string().url(),
+  z
+    .string()
+    .max(1500000)
+    .regex(/^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/),
+]);
+const updateListingInput = z.object({
+  quantity: z.number().int().min(1).max(10000).default(1),
+  price_kobo: z.union([z.literal(0), z.number().int().min(10000).max(100_000_000)]).default(0),
+  pickup_available: z.boolean().default(true),
+  delivery_fee_kobo: z.number().int().min(0).max(10_000_000).nullable().default(null),
+  delivery_area: z.string().trim().min(2).max(150).nullable().default(null),
+  title: z.string().trim().min(3).max(150),
+  description: z.string().trim().min(10).max(5000),
+  category: z.enum([
+    "furniture",
+    "clothing",
+    "appliances",
+    "kitchen",
+    "books",
+    "baby",
+    "electronics",
+    "other",
+  ]),
+  condition: z.enum(["like-new", "good", "gently-used", "needs-repair"]),
+  location: z.string().trim().min(2).max(150),
+  photos: z.array(photoEntry).min(1).max(5),
+});
 async function user(req: Request) {
   const token = req.cookies?.[cookieName];
   if (typeof token !== "string") return null;
@@ -87,18 +118,42 @@ async function requireUser(req: Request) {
   if (!profile) throw new HttpError(401, "Sign in to continue.");
   return profile;
 }
+const completedSales = {
+  where: {
+    paid_at: { not: null },
+    status: {
+      in: [
+        "paid_direct",
+        "paid",
+        "delivery_pending",
+        "delivered",
+        "disputed",
+        "release_pending",
+        "payout_processing",
+        "payout_review",
+        "released",
+      ],
+    },
+  },
+  select: { id: true },
+  take: 1,
+};
 const itemView = (
   item: {
     owner: { full_name: string; phone: string };
     [key: string]: unknown;
   },
-  signedIn: boolean,
+  includeFreeContact = false,
 ) => {
   const { owner, ...rest } = item;
+  delete rest["orders"];
+  const quantity = Number(rest["quantity"]);
   return {
     ...rest,
+    status:
+      quantity <= 0 ? "sold" : rest["status"] === "reserved" ? "available" : rest["status"],
     donor_name: owner.full_name,
-    donor_whatsapp: signedIn && !(Number(rest["price_kobo"]) > 0) ? owner.phone : "",
+    donor_whatsapp: includeFreeContact && !(Number(rest["price_kobo"]) > 0) ? owner.phone : "",
   };
 };
 export function createApp() {
@@ -267,28 +322,31 @@ export function createApp() {
     res.clearCookie(cookieName, cookieOptions).json({ ok: true });
   });
   app.get("/api/items", async (req, res) => {
+    const profile = await user(req);
     const page = z.coerce.number().int().min(0).max(10000).default(0).parse(req.query["page"]);
-    const visitor = await user(req);
-    const signedIn = Boolean(visitor && (!paymentsEnabled() || isMember(visitor.membership_until)));
     const items = await db.item.findMany({
-      where: { status: { in: ["available", "pending"] } },
+      where: {
+        OR: [
+          { status: { in: ["available", "pending"] } },
+          { status: "reserved", quantity: { gt: 0 } },
+        ],
+      },
       include: { owner: { select: { full_name: true, phone: true } } },
       orderBy: [{ created_at: "desc" }, { id: "asc" }],
       take: 50,
       skip: page * 50,
     });
-    res.json(items.map((item) => itemView(item, signedIn)));
+    res.json(items.map((item) => itemView(item, Boolean(profile))));
   });
   app.get("/api/items/:id", async (req, res) => {
+    const profile = await user(req);
     if (!uuid.safeParse(req.params["id"]).success)
       return void res.status(404).json({ error: "Item not found." });
-    const visitor = await user(req);
-    const signedIn = Boolean(visitor && (!paymentsEnabled() || isMember(visitor.membership_until)));
     const item = await db.item.findUnique({
       where: { id: String(req.params["id"]) },
-      include: { owner: { select: { full_name: true, phone: true } } },
+      include: { owner: { select: { full_name: true, phone: true } }, orders: completedSales },
     });
-    res.json(item ? itemView(item, signedIn) : null);
+    res.json(item ? itemView(item, Boolean(profile)) : null);
   });
   app.post(
     "/api/items",
@@ -301,6 +359,17 @@ export function createApp() {
     async (req, res) => {
       const profile = await requireUser(req);
       const { whatsapp, photos, ...data } = listingInput.parse(req.body);
+      if (data.price_kobo === 0) {
+        data.pickup_available = true;
+        data.delivery_fee_kobo = null;
+        data.delivery_area = null;
+      } else if (
+        (data.delivery_fee_kobo === null &&
+          (!data.pickup_available || data.delivery_area !== null)) ||
+        (data.delivery_fee_kobo !== null && data.delivery_area === null)
+      ) {
+        throw new HttpError(400, "Choose pickup or provide a delivery area and fee.");
+      }
       let assets: Awaited<ReturnType<typeof uploadListingPhotos>>;
       try {
         assets = await uploadListingPhotos(photos, profile.id);
@@ -315,7 +384,7 @@ export function createApp() {
             include: { owner: { select: { full_name: true, phone: true } } },
           });
         });
-        res.status(201).json(itemView(item, true));
+        res.status(201).json(itemView(item));
       } catch (error) {
         await removeUploadedPhotos(assets.map((asset) => asset.publicId));
         throw error;
@@ -326,10 +395,10 @@ export function createApp() {
     const profile = await requireUser(req);
     const listings = await db.item.findMany({
       where: { owner_id: profile.id },
-      include: { owner: { select: { full_name: true, phone: true } } },
+      include: { owner: { select: { full_name: true, phone: true } }, orders: completedSales },
       orderBy: { created_at: "desc" },
     });
-    res.json({ profile, listings: listings.map((item) => itemView(item, true)) });
+    res.json({ profile, listings: listings.map((item) => itemView(item)) });
   });
   app.patch("/api/profile", async (req, res) => {
     const profile = await requireUser(req);
@@ -345,7 +414,7 @@ export function createApp() {
     const profile = await requireUser(req);
     const id = uuid.parse(req.params["id"]);
     const { status } = z
-      .object({ status: z.enum(["available", "pending", "matched", "given"]) })
+      .object({ status: z.enum(["available", "sold", "pending", "matched", "given"]) })
       .parse(req.body);
     await db.$transaction(async (tx) => {
       // Serialize seller edits with checkout's inventory reservation.
@@ -361,6 +430,72 @@ export function createApp() {
     });
     res.json({ ok: true });
   });
+  app.patch(
+    "/api/items/:id",
+    rateLimit({
+      windowMs: 15 * 60000,
+      limit: 30,
+      standardHeaders: "draft-8",
+      legacyHeaders: false,
+    }),
+    async (req, res) => {
+      const profile = await requireUser(req);
+      const id = uuid.parse(req.params["id"]);
+      const data = updateListingInput.parse(req.body);
+      if (data.price_kobo === 0) {
+        data.pickup_available = true;
+        data.delivery_fee_kobo = null;
+        data.delivery_area = null;
+      } else if (
+        (data.delivery_fee_kobo === null &&
+          (!data.pickup_available || data.delivery_area !== null)) ||
+        (data.delivery_fee_kobo !== null && data.delivery_area === null)
+      ) {
+        throw new HttpError(400, "Choose pickup or provide a delivery area and fee.");
+      }
+      const current = await db.$transaction(async (tx) => {
+        const owned = await tx.$queryRaw<
+          { id: string; photos: string[] }[]
+        >`SELECT id, photos FROM "Item" WHERE id = ${id}::uuid AND owner_id = ${profile.id}::uuid FOR UPDATE`;
+        if (!owned.length) throw new HttpError(404, "Listing not found.");
+        const activeOrder = await tx.order.findFirst({
+          where: { item_id: id, status: { notIn: ["refunded", "payment_expired"] } },
+        });
+        if (activeOrder)
+          throw new HttpError(409, "This listing has an active order and cannot be edited.");
+        return owned[0]!;
+      });
+      const existingPhotos = new Set(current.photos);
+      const keepUrls = data.photos.filter((p) => existingPhotos.has(p));
+      const newUploads = data.photos.filter((p) => !existingPhotos.has(p));
+      let uploaded: { url: string; publicId: string }[] = [];
+      if (newUploads.length) {
+        try {
+          uploaded = await uploadListingPhotos(newUploads, profile.id);
+        } catch {
+          throw new HttpError(503, "Photo upload failed. Please try again.");
+        }
+      }
+      const removedPublicIds = current.photos
+        .filter((url) => !keepUrls.includes(url))
+        .map((url) => {
+          const match = /\/v\d+\/([^/]+(?:\/[^/]+)*)\.[a-z]+$/i.exec(url);
+          return match?.[1] ?? url;
+        });
+      try {
+        await db.item.update({
+          where: { id },
+          data: { ...data, photos: [...keepUrls, ...uploaded.map((a) => a.url)] },
+        });
+        if (removedPublicIds.length) void removeUploadedPhotos(removedPublicIds).catch(() => {});
+        res.json({ ok: true });
+      } catch (error) {
+        if (uploaded.length)
+          void removeUploadedPhotos(uploaded.map((a) => a.publicId)).catch(() => {});
+        throw error;
+      }
+    },
+  );
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: "Endpoint not found." });
   });

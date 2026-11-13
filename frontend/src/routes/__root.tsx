@@ -7,9 +7,9 @@ import {
 } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/lib/auth-context";
-import { AuthDialogProvider } from "@/components/auth-dialog";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { CartProvider } from "@/lib/cart";
 
 export function NotFoundPage() {
   return (
@@ -48,7 +48,7 @@ export function RouteError() {
 export function RootLayout() {
   return (
     <AuthProvider>
-      <AuthDialogProvider>
+      <CartProvider>
         <div className="flex min-h-screen flex-col bg-background font-sans text-foreground">
           <SiteHeader />
           <main className="flex-1">
@@ -58,7 +58,7 @@ export function RootLayout() {
         </div>
         <Toaster />
         <ScrollRestoration />
-      </AuthDialogProvider>
+      </CartProvider>
     </AuthProvider>
   );
 }

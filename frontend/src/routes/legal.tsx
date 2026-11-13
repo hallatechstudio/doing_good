@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 
-const contactEmail = "support@bethereexperience.com";
+const contactEmail = "support@hallatechnologies.com";
 const updated = "3 November 2026";
 
 function Contact() {
@@ -62,10 +62,10 @@ export function PrivacyPage() {
           </li>
           <li>Support information you send us, such as questions, reports or data requests.</li>
           <li>
-            Membership expiry, payment references, amounts, order status, delivery reports, disputes
-            and review outcomes. Seller payout setup stores a verified account name and recipient
-            token; bank details are sent to the payment processor for verification. Payment card
-            details are entered with the processor, not stored by DoingGood.
+            Payment references, amounts, order status, delivery reports, disputes and review
+            outcomes. Giver payout setup stores a verified account name and recipient token; bank
+            details are sent to the payment processor for verification. Payment card details are
+            entered with the processor, not stored by DoingGood.
           </li>
           <li>
             Technical information processed to operate and protect the service, including IP
@@ -82,11 +82,10 @@ export function PrivacyPage() {
         <p>
           We use account and listing information to provide the service you request: creating
           accounts, signing you in, publishing listings, enabling donor contact, updating your
-          profile, managing memberships, verifying payments, arranging seller payouts and refunds,
-          reviewing disputes, and sending password reset and delivery-review emails. Payment
-          processors receive the details needed to handle payments and verify bank accounts. We also
-          use necessary technical and support data to prevent abuse, troubleshoot problems and
-          respond to enquiries.
+          profile, verifying payments, arranging giver payouts and refunds, reviewing disputes, and
+          sending password reset and delivery-review emails. Payment processors receive the details
+          needed to handle payments and verify bank accounts. We also use necessary technical and
+          support data to prevent abuse, troubleshoot problems and respond to enquiries.
         </p>
         <p>
           Our legal bases include performing our agreement with you, legitimate interests in
@@ -99,11 +98,10 @@ export function PrivacyPage() {
         <h2>3. What other people can see</h2>
         <p>
           Listings, photographs, your donor name and the neighbourhood you provide can be viewed
-          without an account. Donor WhatsApp numbers for free items are available to signed-in
-          members when membership access is active. For paid orders, contact details are shared with
-          the buyer and seller after payment. Authorised support staff can review order and dispute
-          information to resolve problems. Your email address and password hash are not included in
-          public listing responses. Information you publish may be copied or shared by others.
+          without an account. A signed-in user can message a free-item giver on WhatsApp. For paid orders, contact details are shared with the getter and giver after
+          payment. Authorised support staff can review order and dispute information to resolve
+          problems. Your email address and password hash are not included in public listing
+          responses. Information you publish may be copied or shared by others.
         </p>
       </section>
       <section>
@@ -177,10 +175,10 @@ export function TermsPage() {
       <section>
         <h2>1. What DoingGood provides</h2>
         <p>
-          DoingGood helps people give, sell and find items across Lagos. We provide listings,
-          membership access to request free items and, when enabled, paid checkout and order
-          management. We do not own or inspect listed items, verify every user or book deliveries. A
-          listing, payment or membership does not guarantee a match or availability.
+          DoingGood helps people give and get items across Lagos. We provide listings, a cart
+          and, when enabled, paid checkout and item-request management. We do not own or inspect listed
+          items, verify every user or book deliveries. A listing or payment does not guarantee
+          availability.
         </p>
       </section>
       <section>
@@ -190,7 +188,7 @@ export function TermsPage() {
           accurate details, use an email address and WhatsApp number you control, keep your password
           secure and tell us about suspected account misuse. Do not impersonate anyone or use
           someone else's account without permission. Browsing is available without an account;
-          listing and contacting donors require sign-in.
+          listing and contacting a free-item giver require sign-in.
         </p>
       </section>
       <section>
@@ -198,7 +196,7 @@ export function TermsPage() {
         <p>
           Only offer items you own or are authorised to give away. Describe their condition, defects
           and safety concerns honestly, use accurate photos and keep availability up to date. Items
-          may be free or paid. Sellers set a clear price in naira before listing; that price is the
+          may be free or paid. Givers set a clear amount in naira before listing; that amount is the
           item total shown at checkout. A free listing must not carry an item price, deposit or
           reservation fee. Listing is free. Request items honestly and treat donors and other users
           respectfully. Donors choose whom to give to; requesting first does not create an
@@ -226,53 +224,33 @@ export function TermsPage() {
           exchange. Never share passwords or verification codes with another user.
         </p>
         <p>
-          For a paid order, report a delivery problem using Open dispute in Orders before the review
-          deadline; a WhatsApp message alone does not pause payout. Report suspected abuse to us
-          with relevant listing details; contact the appropriate authorities for emergencies or
-          suspected crime.
+          For a paid order, use the dispute email action before the delivery-review deadline. Report suspected abuse to us with relevant listing details; contact the
+          appropriate authorities for emergencies or suspected crime.
         </p>
       </section>
       <section>
-        <h2>6. Membership, payment and delivery review</h2>
+        <h2>6. Payment and delivery</h2>
         <p>
-          Membership costs ₦20,000 for 30 days and provides access to request free items. It does
-          not guarantee any item, donor approval, a particular number of matches or delivery.
-          Renewal is manual; we do not charge automatically. Early renewal adds 30 days to your
-          current expiry. Paid items have a separate price and do not require membership. Any
-          temporary free-access period before membership payments launch will be shown in the app.
+          Browsing and listing are free. Free items have no amount and are subject to giver
+          approval. Paid items have a separate displayed price. Adding an item to a cart does not
+          reserve it or guarantee availability.
         </p>
         <p>
-          Paid checkout is available only when the payment arrangement is configured. A verified
-          item payment is not paid out immediately to the seller. After receiving and checking the
-          item, the buyer may confirm receipt in Orders to authorise payout. Do not confirm merely
-          because a seller asks you to.
+          When held payments are available, payment is released after the getter confirms receipt or
+          the giver reports delivery and the getter raises no dispute within 24 hours of being
+          notified. A dispute keeps the payment held while support reviews the issue. Earlier direct
+          payments follow the terms shown when they were placed.
         </p>
         <p>
-          When a seller reports delivery and the delivery-review email is successfully sent, a
-          24-hour review period starts. If the buyer does not open a dispute within that window, the
-          order becomes eligible for automatic payout. Actual payment processing may take longer. If
-          an email cannot be sent, the automatic release clock does not start. A buyer's explicit
-          confirmation can authorise release sooner.
+          DoingGood retains a 20% platform commission from a completed paid item. The giver's 80%
+          share becomes available in their DoingGood wallet only after payment release. A refund
+          returns 99% of the paid amount to the getter and retains 1% as the refund-processing charge.
+          Any listed delivery fee is included in the checkout total when you select delivery.
+          Mandatory consumer, chargeback and data protection rights still apply.
         </p>
         <p>
-          A dispute freezes the automatic release deadline until an authorised administrator reviews
-          the evidence and records a decision to pay the seller or refund the buyer. Disputed orders
-          do not automatically release after 24 hours. Submit accurate evidence and cooperate with
-          reasonable review requests. Refunds are complete only when confirmed by the payment
-          processor; bank processing times vary. Contact support if a payout or refund needs review.
-        </p>
-        <p>
-          The platform currently adds no commission to an item price. Listing prices do not include
-          separately agreed delivery costs. Do not send a direct item payment to a seller:
-          off-platform payments do not have DoingGood's release controls. Before purchasing, resolve
-          any questions about delivery arrangements with support. Mandatory consumer, chargeback and
-          data protection rights remain unaffected.
-        </p>
-        <p>
-          For a missing, misdescribed or undelivered paid item, open a dispute promptly. For
-          accidental membership purchases or access problems, contact support with your payment
-          reference; we will review the circumstances and any applicable refund rights. Membership
-          fees are not treated as a deposit for a particular item.
+          For a missing, misdescribed or undelivered paid item, contact support promptly with your
+          payment reference. We will review the circumstances and any applicable refund rights.
         </p>
       </section>
       <section>

@@ -4,7 +4,6 @@ export type Profile = {
   email: string;
   full_name: string;
   phone: string;
-  membership_until?: string | null;
   payout_name?: string | null;
 };
 type Dashboard = {
@@ -76,51 +75,104 @@ export const findItem = (id: string) =>
 export const getDashboard = () => api<Dashboard>("/dashboard");
 export const addListing = (
   data: Pick<Item, "title" | "description" | "category" | "condition" | "location" | "photos"> & {
+    quantity?: number;
     whatsapp: string;
     price_kobo?: number;
+    pickup_available?: boolean;
+    delivery_fee_kobo?: number | null;
+    delivery_area?: string | null;
   },
 ) => api<Item>("/items", "POST", data);
 export const updateListingStatus = (id: string, status: string) =>
   api(`/items/${id}/status`, "PATCH", { status });
+export const updateListing = (
+  id: string,
+  data: Pick<Item, "title" | "description" | "category" | "condition" | "location" | "photos"> & {
+    quantity?: number;
+    price_kobo?: number;
+    pickup_available?: boolean;
+    delivery_fee_kobo?: number | null;
+    delivery_area?: string | null;
+  },
+) => api(`/items/${id}`, "PATCH", data);
 export const updateProfile = (full_name: string, phone: string) =>
   api<Profile>("/profile", "PATCH", { full_name, phone });
 export const commerceSettings = () =>
-  api<{
-    membership_price_kobo: number;
-    membership_days: number;
-    membership_checkout: boolean;
-    protected_checkout: boolean;
-    membership_required: boolean;
-  }>("/commerce");
-export const membershipCheckout = () => api<{ url: string }>("/membership/checkout", "POST", {});
-export const buyItem = (item_id: string) => api<{ url: string }>("/orders", "POST", { item_id });
-export const verifyCheckout = (reference: string) => api("/payments/verify", "POST", { reference });
-export type Order = {
+  api<{ protected_checkout: boolean; test_payments?: boolean }>("/commerce");
+export const createTestPayment = (item_id: string, fulfillment_method: "pickup" | "delivery") =>
+  api<{ url: string; reference: string; status?: string }>("/orders/test-payment", "POST", {
+    item_id,
+    fulfillment_method,
+  });
+export type OrderHistoryEntry = {
   id: string;
   item_id: string;
   title: string;
-  photo?: string;
+  photo?: string | null;
   amount: number;
   buyer_id: string;
   seller_id: string;
-  buyer: string;
-  seller: string;
-  contact: string;
   status: string;
+  test_mode?: boolean;
   reference: string;
   created_at: string;
-  release_at: string | null;
-  delivery_note: string | null;
-  dispute_reason: string | null;
-  resolution_note: string | null;
+  buyer: string;
+  seller: string;
+  contact: string | null;
+  fulfillment_method?: "pickup" | "delivery";
+  delivery_fee_kobo?: number;
+  handoff_status?: "ready" | "shipped" | "received" | null;
+  can_track_handoff?: boolean;
+  held_payment?: boolean;
+  wallet_release?: boolean;
+  release_at?: string | null;
+  accountability_until?: string | null;
 };
-export const getOrders = () =>
-  api<{ admin: boolean; user_id: string; membership_until: string | null; orders: Order[] }>(
-    "/orders",
+export type GiverContact = {
+  item_id: string;
+  title: string;
+  giver: string;
+  contact: string | null;
+  created_at: string;
+};
+export const getOrderHistory = () =>
+  api<{ user_id: string; orders: OrderHistoryEntry[]; admin?: boolean }>("/orders");
+export const getWallet = () => api<{ available: number; pending: number; commission_rate: number; payout_name: string | null; transactions: { id: string; title: string; amount: number; status: string; created_at: string; kind: "sale" | "withdrawal" }[] }>("/wallet");
+export const createWithdrawal = (amount: number) =>
+  api<{ id: string; status: string }>("/wallet/withdrawals", "POST", { amount });
+export type OrderMessage = {
+  id: string;
+  text: string;
+  sender_id: string;
+  created_at: string;
+};
+export const getOrderMessages = (order_id: string) =>
+  api<OrderMessage[]>(`/orders/${encodeURIComponent(order_id)}/messages`);
+export const sendOrderMessage = (order_id: string, text: string) =>
+  api<OrderMessage>(`/orders/${encodeURIComponent(order_id)}/messages`, "POST", { text });
+export const getGiverContacts = () => api<GiverContact[]>("/giver-contacts");
+export const saveGiverContact = (item_id: string) => api("/giver-contacts", "POST", { item_id });
+export const buyItem = (item_id: string, fulfillment_method: "pickup" | "delivery" = "pickup") =>
+  api<{ url: string; reference: string }>("/orders", "POST", { item_id, fulfillment_method });
+export const updateHandoff = (id: string, action: "ready" | "shipped" | "received") =>
+  api<{ ok: boolean }>(`/orders/${encodeURIComponent(id)}/handoff`, "POST", { action });
+export const updateHeldOrder = (
+  id: string,
+  action: "deliver" | "confirm" | "dispute",
+  detail: string,
+) =>
+  api<{ ok: boolean }>(
+    `/orders/${encodeURIComponent(id)}/${action}`,
+    "POST",
+    action === "deliver" ? { note: detail } : action === "dispute" ? { reason: detail } : {},
   );
-export const orderAction = (id: string, action: string, data: unknown = {}) =>
-  api(`/orders/${id}/${action}`, "POST", data);
+export const verifyCheckout = (reference: string) =>
+  api<{ ok: boolean; test_mode?: boolean }>("/payments/verify", "POST", { reference });
 export const payoutBanks = () => api<{ name: string; code: string }[]>("/payout/banks");
+export const resolvePayoutName = (bank_code: string, account_number: string) =>
+  api<{ account_name: string }>(
+    `/payout/resolve?bank_code=${encodeURIComponent(bank_code)}&account_number=${encodeURIComponent(account_number)}`,
+  );
 export const savePayout = (bank_code: string, account_number: string) =>
   api<{ name: string }>("/payout/account", "POST", { bank_code, account_number });
 export async function photoData(file: File): Promise<string> {

@@ -35,18 +35,20 @@ test("membership boundaries, review deadlines and raw webhook signatures", () =>
 
 test("marketplace integration: verified membership, reservations, dispute freeze, payout and refund", async (t) => {
   const original = { ...process.env };
-  process.env["PAYSTACK_SECRET_KEY"] = "sk_test_doinggood_mock_only";
+  process.env["PAYSTACK_SECRET_KEY"] = "sk_live_mock_no_real_calls";
   process.env["PAYMENTS_ENABLED"] = "true";
-  process.env["PAYSTACK_HOLDING_APPROVED"] = "true";
+  process.env["PAYMENT_HOLDING_APPROVED"] = "true";
   const marker = `commerce-test-${randomUUID()}`;
   const userIds: string[] = [];
   const itemIds: string[] = [];
-  const verified = new Map<string, { email: string; amount: number }>();
+  const verified = new Map<string, { email: string; amount: number; domain?: string }>();
   const transfers = new Map<string, { amount: number; recipient: string }>();
   let transferCalls = 0;
   let refundCalls = 0;
   let emailFails = false;
   let invalidTransfer = false;
+  let bankResolveStatus: number | null = null;
+  let bankResolveCalls = 0;
   t.mock.method(ServerClient.prototype, "sendEmail", async () => {
     if (emailFails) throw new Error("Mail outage");
     return { ErrorCode: 0, Message: "OK", MessageID: "mock" };
@@ -61,9 +63,34 @@ test("marketplace integration: verified membership, reservations, dispute freeze
     const body = init?.body ? JSON.parse(String(init.body)) : {};
     const path = url.pathname;
     let data: unknown;
-    if (path === "/transaction/initialize")
+    if (path === "/bank") {
+      data = [
+        { name: "Example Bank", code: "058" },
+        { name: "Example Bank Duplicate", code: "058" },
+      ];
+    } else if (path === "/bank/resolve") {
+      bankResolveCalls++;
+      if (bankResolveStatus !== null)
+        return new Response(JSON.stringify({ status: false }), {
+          status: bankResolveStatus,
+          ...(bankResolveStatus === 429
+            ? {
+                headers: {
+                  "x-ratelimit-limit": "1500",
+                  "x-ratelimit-remaining": "0",
+                  "x-ratelimit-reset": "30",
+                },
+              }
+            : {}),
+        });
+      data = { account_name: "Tolu Ade" };
+    } else if (path === "/transaction/initialize") {
+      if (String(new Headers(init?.headers).get("authorization")).startsWith("Bearer sk_live_")) {
+        assert.equal(body.subaccount, undefined);
+        assert.equal(body.bearer, undefined);
+      }
       data = { authorization_url: `https://checkout.paystack.com/mock-${body.reference}` };
-    else if (path.startsWith("/transaction/verify/")) {
+    } else if (path.startsWith("/transaction/verify/")) {
       const reference = path.split("/").at(-1)!;
       const payment = verified.get(reference);
       data = {
@@ -71,6 +98,7 @@ test("marketplace integration: verified membership, reservations, dispute freeze
         reference,
         amount: payment?.amount,
         currency: "NGN",
+        domain: payment?.domain,
         customer: { email: payment?.email },
         paid_at: new Date().toISOString(),
       };
@@ -142,17 +170,56 @@ test("marketplace integration: verified membership, reservations, dispute freeze
     const stranger = await identity("stranger");
     const admin = await identity("admin");
     process.env["COMMERCE_ADMIN_EMAILS"] = admin.email;
+    const payoutLookup = (accountNumber = "1111111111") =>
+      request(app)
+        .get(`/api/payout/resolve?bank_code=058&account_number=${accountNumber}`)
+        .set("Cookie", seller.cookie);
+    const resolvedPayout = await payoutLookup();
+    assert.equal(resolvedPayout.status, 200);
+    assert.deepEqual(resolvedPayout.body, { account_name: "Tolu Ade" });
+    assert.equal((await payoutLookup()).status, 200);
+    assert.equal(bankResolveCalls, 1, "Successful payout lookups are cached");
+    bankResolveStatus = 400;
+    const invalidPayout = await payoutLookup("2222222222");
+    assert.equal(invalidPayout.status, 422);
+    assert.match(invalidPayout.body.error, /Check the selected bank and 10-digit account number/);
+    bankResolveStatus = 429;
+    const rateLimitedPayout = await payoutLookup("3333333333");
+    assert.equal(rateLimitedPayout.status, 429);
+    assert.match(rateLimitedPayout.body.error, /try again in 30 seconds/);
+    assert.equal((await payoutLookup("4444444444")).status, 429);
+    assert.equal(bankResolveCalls, 3, "The Paystack cooldown suppresses further requests");
+    bankResolveStatus = null;
     const free = await item(seller.id, 0);
+    const saveContact = () =>
+      request(app)
+        .post("/api/giver-contacts")
+        .set("Cookie", buyer.cookie)
+        .send({ item_id: free.id });
+    const saved = await Promise.all([saveContact(), saveContact()]);
+    assert.deepEqual(
+      saved.map((result) => result.status),
+      [200, 200],
+    );
+    const contactHistory = (cookie: string) =>
+      request(app).get("/api/giver-contacts").set("Cookie", cookie);
+    assert.deepEqual(
+      (await contactHistory(buyer.cookie)).body.map(
+        (entry: { item_id: string; contact: string }) => [entry.item_id, entry.contact],
+      ),
+      [[free.id, seller.phone]],
+    );
+    assert.deepEqual((await contactHistory(stranger.cookie)).body, []);
     assert.equal(
       (await request(app).get(`/api/items/${free.id}`).set("Cookie", buyer.cookie)).body
         .donor_whatsapp,
-      "",
+      seller.phone,
     );
     process.env["PAYMENTS_ENABLED"] = "false";
     assert.equal(
       (await request(app).post("/api/membership/checkout").set("Cookie", buyer.cookie).send({}))
         .status,
-      503,
+      404,
     );
     assert.equal(
       (await request(app).get(`/api/items/${free.id}`).set("Cookie", buyer.cookie)).body
@@ -160,12 +227,17 @@ test("marketplace integration: verified membership, reservations, dispute freeze
       seller.phone,
     );
     process.env["PAYMENTS_ENABLED"] = "true";
-    const memberCheckout = await request(app)
-      .post("/api/membership/checkout")
-      .set("Cookie", buyer.cookie)
-      .send({});
-    assert.equal(memberCheckout.status, 200);
-    const memberRef = memberCheckout.body.reference as string;
+    assert.equal(
+      (await request(app).post("/api/membership/checkout").set("Cookie", buyer.cookie).send({}))
+        .status,
+      404,
+    );
+    assert.equal((await request(app).get("/api/commerce")).body.membership_checkout, undefined);
+    // Preserve verification of historical receipts without selling new memberships.
+    const legacyPurchase = await db.purchase.create({
+      data: { user_id: buyer.id, reference: `dg-member-${randomUUID()}`, amount: 2000000 },
+    });
+    const memberRef = legacyPurchase.reference;
     const verify = (reference: string, cookie = buyer.cookie) =>
       request(app).post("/api/payments/verify").set("Cookie", cookie).send({ reference });
     assert.equal((await verify(memberRef)).status, 409);
@@ -175,6 +247,16 @@ test("marketplace integration: verified membership, reservations, dispute freeze
       409,
       "Wrong payment amount cannot grant membership",
     );
+    verified.set(memberRef, { email: buyer.email, amount: 2000001 });
+    assert.equal(
+      (await verify(memberRef)).status,
+      200,
+      "A provider fee collected from the buyer must not invalidate a fully paid order",
+    );
+    await db.purchase.update({
+      where: { id: legacyPurchase.id },
+      data: { status: "pending", paid_at: null },
+    });
     assert.equal((await verify(memberRef, stranger.cookie)).status, 404);
     verified.set(memberRef, { email: buyer.email, amount: 2000000 });
     assert.equal((await verify(memberRef)).status, 200);
@@ -192,13 +274,16 @@ test("marketplace integration: verified membership, reservations, dispute freeze
       seller.phone,
     );
     const paid = await item(seller.id, 500000);
+    const bankList = await request(app).get("/api/payout/banks").set("Cookie", seller.cookie);
+    assert.equal(bankList.status, 200);
+    assert.deepEqual(bankList.body, [{ name: "Example Bank", code: "058" }]);
     assert.equal(
       (await request(app).get(`/api/items/${paid.id}`).set("Cookie", buyer.cookie)).body
         .donor_whatsapp,
       "",
       "Paid seller contact is not leaked before checkout",
     );
-    process.env["PAYSTACK_HOLDING_APPROVED"] = "false";
+    process.env["PAYMENT_HOLDING_APPROVED"] = "false";
     assert.equal(
       (
         await request(app)
@@ -208,19 +293,8 @@ test("marketplace integration: verified membership, reservations, dispute freeze
       ).status,
       503,
     );
-    process.env["PAYSTACK_HOLDING_APPROVED"] = "true";
-    process.env["PAYSTACK_SECRET_KEY"] = "sk_live_mock_no_real_calls";
-    assert.equal(
-      (
-        await request(app)
-          .post("/api/orders")
-          .set("Cookie", buyer.cookie)
-          .send({ item_id: paid.id })
-      ).status,
-      503,
-      "Live Paystack cannot enable unsupported escrow",
-    );
-    process.env["PAYSTACK_SECRET_KEY"] = "sk_test_doinggood_mock_only";
+    process.env["PAYMENT_HOLDING_APPROVED"] = "true";
+    assert.equal((await request(app).get("/api/commerce")).body.protected_checkout, true);
     assert.equal(
       (
         await request(app)
@@ -282,6 +356,14 @@ test("marketplace integration: verified membership, reservations, dispute freeze
       (await request(app).get("/api/orders").set("Cookie", stranger.cookie)).body.orders.length,
       0,
     );
+    assert.equal(
+      (await request(app).get("/api/orders").set("Cookie", buyer.cookie)).body.orders[0].contact,
+      seller.phone,
+    );
+    assert.equal(
+      (await request(app).get("/api/orders").set("Cookie", admin.cookie)).body.orders[0].contact,
+      "",
+    );
     const act = (id: string, action: string, cookie: string, body = {}) =>
       request(app).post(`/api/orders/${id}/${action}`).set("Cookie", cookie).send(body);
     assert.equal(
@@ -328,8 +410,10 @@ test("marketplace integration: verified membership, reservations, dispute freeze
           note: "Buyer provided a signed receipt after review",
         })
       ).status,
-      200,
+      409,
     );
+    // Exercise reconciliation of an already-authorized payout independently of dispute handling.
+    await db.order.update({ where: { id: order.id }, data: { status: "release_pending" } });
     invalidTransfer = true;
     await processCommerce(itemIds);
     assert.equal(
@@ -345,6 +429,7 @@ test("marketplace integration: verified membership, reservations, dispute freeze
       (await db.order.findUniqueOrThrow({ where: { id: order.id } })).status,
       "released",
     );
+    assert.ok((await db.order.findUniqueOrThrow({ where: { id: order.id } })).release_at);
     assert.equal((await db.item.findUniqueOrThrow({ where: { id: paid.id } })).status, "sold");
     const refundItem = await item(seller.id, 500000);
     const refundOrder = await db.order.create({
@@ -359,13 +444,18 @@ test("marketplace integration: verified membership, reservations, dispute freeze
         status: "disputed",
       },
     });
-    await act(refundOrder.id, "resolve", admin.cookie, {
+    const refundResolution = await act(refundOrder.id, "resolve", admin.cookie, {
       outcome: "refund",
       note: "Seller confirmed delivery never happened",
     });
+    assert.equal(refundResolution.status, 200);
+    assert.equal(
+      (await db.order.findUniqueOrThrow({ where: { id: refundOrder.id } })).status,
+      "refund_pending",
+    );
     await processCommerce(itemIds);
+    assert.equal(refundCalls, 1, "A pending refund should be sent to the mocked provider");
     await processCommerce(itemIds);
-    assert.equal(refundCalls, 1);
     assert.equal(
       (await db.order.findUniqueOrThrow({ where: { id: refundOrder.id } })).status,
       "refunded",
@@ -470,5 +560,81 @@ test("marketplace integration: verified membership, reservations, dispute freeze
     await db.user.deleteMany({ where: { id: { in: userIds } } });
     process.env = original;
     await db.$disconnect();
+  }
+});
+
+test("order messaging stays between the buyer and the seller", async () => {
+  const marker = `order-messages-${randomUUID()}`;
+  const userIds: string[] = [];
+  const itemIds: string[] = [];
+  const app = createApp();
+  async function identity(name: string) {
+    const user = await db.user.create({
+      data: { email: `${marker}-${name}@example.com`, full_name: name, phone: "+2348012345678" },
+    });
+    userIds.push(user.id);
+    const token = randomUUID();
+    await db.session.create({
+      data: {
+        id: createHash("sha256").update(token).digest("hex"),
+        user_id: user.id,
+        expires_at: new Date(Date.now() + 3600000),
+      },
+    });
+    return { ...user, cookie: `doinggood_session=${token}` };
+  }
+  try {
+    const seller = await identity("seller");
+    const buyer = await identity("buyer");
+    const stranger = await identity("stranger");
+    const listing = await db.item.create({
+      data: {
+        owner_id: seller.id,
+        title: marker,
+        description: "Messaging test item",
+        category: "other",
+        condition: "good",
+        location: "Lagos",
+        photos: [],
+        price_kobo: 500000,
+      },
+    });
+    itemIds.push(listing.id);
+    const order = await db.order.create({
+      data: {
+        item_id: listing.id,
+        buyer_id: buyer.id,
+        seller_id: seller.id,
+        reference: `dg-order-${randomUUID()}`,
+        transfer_reference: `dg-payout-${randomUUID()}`,
+        recipient: "RCP_mock",
+        amount: 500000,
+        status: "paid",
+        paid_at: new Date(),
+      },
+    });
+    const send = (cookie: string, text: string) =>
+      request(app).post(`/api/orders/${order.id}/messages`).set("Cookie", cookie).send({ text });
+    const read = (cookie: string) =>
+      request(app).get(`/api/orders/${order.id}/messages`).set("Cookie", cookie);
+    assert.equal((await read(stranger.cookie)).status, 404, "Strangers cannot read an order");
+    assert.equal((await send(stranger.cookie, "Hello")).status, 404, "Strangers cannot post");
+    assert.equal((await send(buyer.cookie, "   ")).status, 400, "Empty messages are rejected");
+    const buyerMessage = await send(buyer.cookie, "  On my way to Yaba.  ");
+    assert.equal(buyerMessage.status, 201);
+    assert.equal(buyerMessage.body.text, "On my way to Yaba.");
+    assert.equal(buyerMessage.body.sender_id, buyer.id);
+    assert.equal((await send(seller.cookie, "See you soon")).status, 201);
+    const thread = await read(seller.cookie);
+    assert.equal(thread.status, 200);
+    assert.deepEqual(
+      thread.body.map((message: { text: string }) => message.text),
+      ["On my way to Yaba.", "See you soon"],
+    );
+    assert.equal((await read(buyer.cookie)).body.length, 2);
+  } finally {
+    await db.order.deleteMany({ where: { item_id: { in: itemIds } } });
+    await db.item.deleteMany({ where: { id: { in: itemIds } } });
+    await db.user.deleteMany({ where: { id: { in: userIds } } });
   }
 });

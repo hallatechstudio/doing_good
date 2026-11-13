@@ -18,11 +18,11 @@ export const CONDITIONS = [
 
 export const STATUS_LABELS: Record<string, string> = {
   available: "Available",
+  sold: "Sold",
   pending: "On hold",
   matched: "Matched",
   given: "Given",
   reserved: "Reserved",
-  sold: "Sold",
 };
 
 export const itemPrice = (kobo = 0) =>

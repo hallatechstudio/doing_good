@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Heart, HandHeart, Package, Search, Truck } from "lucide-react";
+import { Heart, HandHeart, Package, Search, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const journeys = {
@@ -8,17 +8,17 @@ const journeys = {
     {
       icon: Search,
       title: "Find something you need.",
-      body: "Browse free and paid furniture, clothes, books and essentials across Lagos without an account. Filter by price or category to find what works for you.",
+      body: "Browse free and paid furniture, clothes, books and essentials across Lagos without an account. Filter by amount or category to find what works for you.",
     },
     {
       icon: HandHeart,
       title: "Request the item.",
-      body: "For free items, join the ₦20,000 membership for 30 days, then contact the donor on WhatsApp. For paid items, sign in and use platform checkout when available. Membership is not needed to buy paid items.",
+      body: "Open an item to view its photos and details. Add free or paid items to your cart. For paid items, continue to a separate checkout page. For free items, sign in and contact the donor directly.",
     },
     {
       icon: Truck,
       title: "Arrange the logistics.",
-      body: "Arrange collection or delivery directly. For paid orders, confirm receipt in Orders only after checking your item. A seller's delivery notice starts a 24-hour review after email notification. Open a dispute before the deadline to freeze payout for review. DoingGood does not book deliveries.",
+      body: "For paid items, choose pickup or delivery at checkout and review the total before paying. After payment, message the giver and follow the handoff in Order history. For free items, agree on collection with the giver.",
     },
   ],
   give: [
@@ -30,12 +30,12 @@ const journeys = {
     {
       icon: Package,
       title: "Give it a good introduction.",
-      body: "Sign in, add your WhatsApp number, choose free or paid, and upload honest photos and descriptions. For a paid item, set a naira price and add your verified payout account in Orders. Listing is free.",
+      body: "Sign in, add your WhatsApp number, and upload photos and a description. For a paid item, set an amount and choose pickup or delivery. Listing is free.",
     },
     {
       icon: Truck,
       title: "Plan pick-up or delivery.",
-      body: "For free items, arrange collection on WhatsApp and update the listing status. For paid orders, report delivery with evidence in Orders. Payout follows buyer confirmation or an undisputed 24-hour review; a dispute pauses release until an admin resolves it.",
+      body: "Arrange collection on WhatsApp for free items. For paid orders, message the getter and mark the item ready for pickup or shipped in Order history.",
     },
   ],
 };
@@ -101,29 +101,6 @@ export function HowItWorksPage() {
           <Button asChild variant="outline" size="lg">
             <Link to="/">Browse items</Link>
           </Button>
-        </div>
-      </section>
-
-      <section className="border-t border-border">
-        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 px-4 py-14 sm:px-6 md:flex-row md:items-center">
-          <div>
-            <p className="eyebrow text-primary">Your next small act of good</p>
-            <h2 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl">
-              Make a little room.
-              <br />
-              Make a real difference.
-            </h2>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Button asChild variant="hero" size="lg">
-              <Link to="/give">
-                Give an item <ArrowRight />
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="lg">
-              <Link to="/">Browse free items</Link>
-            </Button>
-          </div>
         </div>
       </section>
     </>

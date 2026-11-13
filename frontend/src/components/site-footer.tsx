@@ -9,12 +9,12 @@ export function SiteFooter() {
             <span className="text-primary">Doing</span>Good
           </p>
           <p className="mt-3 max-w-xs text-sm text-muted-foreground">
-            Give, sell and find useful items from people across Lagos.
+            Give and get useful items from people everywhere.
           </p>
         </div>
         <div className="text-sm">
           <p className="eyebrow text-muted-foreground">Explore</p>
-          <ul className="mt-4 space-y-3">
+          <ul className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3">
             <li>
               <Link to="/" className="transition-colors hover:text-primary">
                 Browse items
@@ -40,19 +40,20 @@ export function SiteFooter() {
                 Our story
               </Link>
             </li>
+            <li><Link to="/contact" className="transition-colors hover:text-primary">Contact</Link></li>
           </ul>
         </div>
         <div className="text-sm">
-          <p className="eyebrow text-muted-foreground">Give. Sell. Find.</p>
+          <p className="eyebrow text-muted-foreground">Give. Get. Find.</p>
           <p className="mt-4 text-muted-foreground">
-            Listing is free. Membership gives access to request free items for ₦20,000 per 30 days.
-            Paid items have their own listed price, with no membership required.
+            Browse and list for free. Give items away or set a fair amount. Add your favourites to
+            your cart and check out when you are ready.
           </p>
           <a
-            href="https://doinggoodinitiative.com"
+            href="https://doinggoodeverywhere.com"
             className="mt-4 inline-block font-medium text-primary transition-opacity hover:opacity-80"
           >
-            doinggoodinitiative.com
+            doinggoodeverywhere.com
           </a>
         </div>
       </div>

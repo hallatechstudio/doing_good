@@ -17,6 +17,7 @@ export function GivePage() {
   const [previews, setPreviews] = useState<string[]>([]);
   const [phone, setPhone] = useState("");
   const [pricing, setPricing] = useState("free");
+  const [handoff, setHandoff] = useState("pickup");
   const [paidListingsAvailable, setPaidListingsAvailable] = useState(false);
   useEffect(() => {
     let active = true;
@@ -77,6 +78,7 @@ export function GivePage() {
       const images = await Promise.all(photos.map(photoData));
       await addListing({
         whatsapp: phone,
+        quantity: Math.floor(Number(form.get("quantity"))),
         title: String(form.get("title")).trim(),
         description: String(form.get("description")).trim(),
         category: String(form.get("category")),
@@ -84,6 +86,15 @@ export function GivePage() {
         location: String(form.get("location")).trim(),
         photos: images,
         price_kobo: pricing === "paid" ? Math.round(Number(form.get("price")) * 100) : 0,
+        pickup_available: pricing !== "paid" || handoff !== "delivery",
+        delivery_fee_kobo:
+          pricing === "paid" && handoff !== "pickup"
+            ? Math.round(Number(form.get("delivery_fee")) * 100)
+            : null,
+        delivery_area:
+          pricing === "paid" && handoff !== "pickup"
+            ? String(form.get("delivery_area")).trim()
+            : null,
       });
       toast.success("Your item is listed.");
       navigate("/dashboard");
@@ -98,7 +109,7 @@ export function GivePage() {
   const selectClass = "h-11 w-full rounded-md border border-input bg-background px-3 text-sm";
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-12 sm:py-20">
-      <title>Give or sell an item - DoingGood</title>
+      <title>Give an item - DoingGood</title>
       <HeartHandshake className="size-8 text-primary" />
       <p className="eyebrow mt-6 text-primary">Make room for good</p>
       <h1 className="mt-3 text-4xl font-extrabold tracking-tight">
@@ -107,8 +118,8 @@ export function GivePage() {
         <span className="text-primary">A new beginning for someone.</span>
       </h1>
       <p className="mt-4 text-muted-foreground">
-        Give your item away or set a price in naira. Listing is free. Buyers of paid items use
-        platform checkout; members contact donors on WhatsApp for free items.
+        Give your item away or set an amount in naira. Listing is free. Getters of paid items use
+        platform checkout. People can contact givers on WhatsApp for free items.
       </p>
       <form onSubmit={submit} className="mt-10 space-y-6">
         <div className="space-y-2">
@@ -130,7 +141,7 @@ export function GivePage() {
         </div>
         <fieldset disabled={busy} className="space-y-6 disabled:opacity-60">
           <div className="space-y-3 rounded-xl border border-border bg-card p-5">
-            <Label htmlFor="listing-type">Give away or sell?</Label>
+            <Label htmlFor="listing-type">Give away or offer for an amount?</Label>
             <select
               id="listing-type"
               value={pricing}
@@ -139,12 +150,12 @@ export function GivePage() {
             >
               <option value="free">Free item — give it away</option>
               <option value="paid" disabled={!paidListingsAvailable}>
-                Paid item — set a price
+                Paid item — set an amount
               </option>
             </select>
             {pricing === "paid" && (
               <>
-                <Label htmlFor="listing-price">Item price (₦)</Label>
+                <Label htmlFor="listing-price">Item amount (₦)</Label>
                 <Input
                   id="listing-price"
                   name="price"
@@ -155,12 +166,44 @@ export function GivePage() {
                   step="0.01"
                   placeholder="e.g. 25000"
                 />
-                <p className="text-xs leading-6 text-muted-foreground">
-                  Add your verified payout account in Orders before a buyer can check out. The
-                  listed price is the item total; arrange delivery separately before purchase.
-                  Payments remain pending release until receipt is confirmed or the undisputed
-                  24-hour delivery review ends.
-                </p>
+                <Label htmlFor="listing-handoff">Pickup and delivery options</Label>
+                <select
+                  id="listing-handoff"
+                  className={selectClass}
+                  value={handoff}
+                  onChange={(event) => setHandoff(event.target.value)}
+                >
+                  <option value="pickup">Pickup only</option>
+                  <option value="delivery">Delivery only</option>
+                  <option value="both">Pickup or delivery</option>
+                </select>
+                {handoff !== "pickup" && (
+                  <>
+                    <Label htmlFor="delivery-area">Delivery areas</Label>
+                    <Input
+                      id="delivery-area"
+                      name="delivery_area"
+                      required
+                      minLength={2}
+                      maxLength={150}
+                      placeholder="e.g. Yaba and Surulere"
+                    />
+                    <Label htmlFor="delivery-fee">Fixed delivery fee (₦)</Label>
+                    <Input
+                      id="delivery-fee"
+                      name="delivery_fee"
+                      type="number"
+                      required
+                      min="0"
+                      max="100000"
+                      step="0.01"
+                      placeholder="0 for free delivery"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      This fee is added to the checkout total when the getter chooses delivery.
+                    </p>
+                  </>
+                )}
               </>
             )}
           </div>
@@ -218,6 +261,21 @@ export function GivePage() {
             />
           </div>
           <div className="space-y-2">
+            <Label htmlFor="quantity">Quantity available</Label>
+            <Input
+              id="quantity"
+              name="quantity"
+              type="number"
+              required
+              min="1"
+              max="10000"
+              defaultValue="1"
+            />
+            <p className="text-xs text-muted-foreground">
+              List how many units you have. Each collection reduces the remaining quantity by one.
+            </p>
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
@@ -271,7 +329,7 @@ export function GivePage() {
             {busy
               ? "Uploading and listing…"
               : pricing === "paid"
-                ? "List my item for sale"
+                ? "List my item for getters"
                 : "List my free item"}
           </Button>
         </fieldset>
