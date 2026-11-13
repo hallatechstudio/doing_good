@@ -8,7 +8,7 @@ import { WhatsAppIcon } from "@/components/whatsapp-icon";
 import { useAuth } from "@/lib/auth-context";
 import { useCart } from "@/lib/cart";
 import { findItem } from "@/lib/api";
-import { categoryLabel, conditionLabel, itemPrice, STATUS_LABELS } from "@/lib/site";
+import { appUrl, categoryLabel, conditionLabel, itemPrice, STATUS_LABELS } from "@/lib/site";
 import type { Item } from "@/lib/types";
 
 export function ItemDetailsDialog({
@@ -60,7 +60,7 @@ export function ItemDetailsDialog({
   }
   const digits = phone.replace(/\D/g, "");
   const validPhone = /^[1-9]\d{7,14}$/.test(digits);
-  const message = `Hi, I’m interested in getting the ${item.title}. Is it still available? ${window.location.origin}/items/${item.id}`;
+  const message = `Hi, I’m interested in getting the ${item.title}. Is it still available? ${appUrl}/items/${item.id}`;
   return (
     <Dialog
       open

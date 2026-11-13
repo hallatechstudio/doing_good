@@ -25,6 +25,11 @@ export const STATUS_LABELS: Record<string, string> = {
   reserved: "Reserved",
 };
 
+export const appUrl = (import.meta.env["VITE_APP_URL"] || window.location.origin).replace(
+  /\/+$/,
+  "",
+);
+
 export const itemPrice = (kobo = 0) =>
   kobo > 0
     ? new Intl.NumberFormat("en-NG", {

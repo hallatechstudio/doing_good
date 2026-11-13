@@ -15,7 +15,7 @@ import {
   updateProfile,
 } from "@/lib/api";
 import { readCartIds } from "@/lib/cart";
-import { itemPrice } from "@/lib/site";
+import { appUrl, itemPrice } from "@/lib/site";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -179,7 +179,7 @@ export function CheckoutPage() {
               </p>
               {free.map((item) => {
                 const digits = item.donor_whatsapp.replace(/\D/g, "");
-                const text = `Hi! I'm interested in ${item.title} on DoingGood. Is it still available? ${window.location.origin}/items/${item.id}`;
+                const text = `Hi! I'm interested in ${item.title} on DoingGood. Is it still available? ${appUrl}/items/${item.id}`;
                 return (
                   <div key={item.id} className="flex flex-wrap items-center justify-between gap-3">
                     <span className="text-sm">{item.title}</span>

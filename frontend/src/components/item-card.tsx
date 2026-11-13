@@ -5,7 +5,7 @@ import { MapPin } from "lucide-react";
 import { WhatsAppIcon } from "@/components/whatsapp-icon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { categoryLabel, conditionLabel, itemPrice, STATUS_LABELS } from "@/lib/site";
+import { appUrl, categoryLabel, conditionLabel, itemPrice, STATUS_LABELS } from "@/lib/site";
 import type { Item } from "@/lib/types";
 import { Link } from "react-router-dom";
 
@@ -22,7 +22,7 @@ export function ItemCard({ item, onView }: { item: Item; onView: (item: Item) =>
     }
   }
   const digits = item.donor_whatsapp.replace(/\D/g, "");
-  const whatsappMessage = `Hi! I'm interested in ${item.title} on DoingGood. Is it still available? ${window.location.origin}/items/${item.id}`;
+  const whatsappMessage = `Hi! I'm interested in ${item.title} on DoingGood. Is it still available? ${appUrl}/items/${item.id}`;
   return (
     <article className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-primary/40">
       <button
