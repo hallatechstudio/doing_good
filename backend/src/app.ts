@@ -189,7 +189,7 @@ export function createApp() {
       const expected = new URL(process.env["APP_URL"] || "http://localhost:5173").origin;
       if (origin && origin !== expected)
         return next(new HttpError(403, "Request origin is not allowed."));
-      if (req.get("sec-fetch-site") === "cross-site")
+      if (!origin && req.get("sec-fetch-site") === "cross-site")
         return next(new HttpError(403, "Request origin is not allowed."));
       if (!req.is("application/json")) return next(new HttpError(415, "Send JSON data."));
     }
