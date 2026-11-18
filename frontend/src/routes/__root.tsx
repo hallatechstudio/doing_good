@@ -65,7 +65,7 @@ export function RootLayout() {
         import("./wallet"),
         import("./admin"),
       ]);
-    }, 800);
+    }, 100);
     return () => window.clearTimeout(preload);
   }, []);
   return (

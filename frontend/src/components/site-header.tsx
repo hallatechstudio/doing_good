@@ -21,12 +21,12 @@ export function SiteHeader() {
     }
   }
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
-      <div className="mx-auto flex min-h-16 w-full max-w-7xl items-center justify-between gap-2 px-4 py-2 sm:px-6">
-        <Link to="/" className="shrink-0 text-lg font-extrabold tracking-tight">
+    <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
+      <div className="mx-auto flex min-h-16 w-full max-w-7xl items-center justify-between gap-1 px-4 py-2 sm:gap-2 sm:px-6">
+        <Link to="/" className="shrink-0 text-base font-extrabold tracking-tight sm:text-lg">
           <span className="text-primary">Doing</span>Good
         </Link>
-        <nav aria-label="Main navigation" className="flex items-center gap-1 sm:gap-2 lg:gap-3">
+        <nav aria-label="Main navigation" className="flex items-center gap-0.5 sm:gap-2 lg:gap-3">
           {!userId && (
             <Link
               to="/"
@@ -62,14 +62,14 @@ export function SiteHeader() {
               My listings
             </Link>
           )}
-          <Button asChild size="sm" variant="outline" className="px-2 sm:px-3">
+          <Button asChild size="sm" variant="outline" className="h-9 px-2 sm:px-3">
             <Link to="/cart" aria-label={`View cart (${ids.length} items)`}>
               <ShoppingCart className="size-4" />
               <span className="hidden sm:inline">Cart</span>
               <span>{ids.length}</span>
             </Link>
           </Button>
-          <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`} title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
+          <Button variant="ghost" size="icon" className="size-9" onClick={toggleTheme} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`} title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
             {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </Button>
           {userId ? (
@@ -89,21 +89,11 @@ export function SiteHeader() {
               Sign in
             </Link>
           )}
-          <Button asChild variant="hero" size="sm" className="px-2 sm:px-3">
+          <Button asChild variant="hero" size="sm" className="h-9 whitespace-nowrap px-2 text-xs sm:px-3 sm:text-sm">
             <Link to="/give">Give an item</Link>
           </Button>
         </nav>
       </div>
-      <nav
-        aria-label="Explore"
-        className="flex flex-wrap justify-center gap-x-6 gap-y-2 border-t border-border px-4 py-3 text-xs font-medium text-muted-foreground lg:hidden"
-      >
-        {!userId && <Link to="/">Browse items</Link>}
-        <Link to="/how-it-works">How it works</Link>
-        {userId && <Link to="/dashboard">My listings</Link>}
-        {userId && <Link to="/wallet">Wallet</Link>}
-        {userId && <Link to="/orders">Order history</Link>}
-      </nav>
     </header>
   );
 }

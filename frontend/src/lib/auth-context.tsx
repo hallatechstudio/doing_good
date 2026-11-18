@@ -41,11 +41,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else sync();
     };
     window.addEventListener(AUTH_EVENT, authChanged);
-    window.addEventListener("focus", sync);
     return () => {
       active = false;
       window.removeEventListener(AUTH_EVENT, authChanged);
-      window.removeEventListener("focus", sync);
     };
   }, []);
   return <AuthContext.Provider value={{ userId, user, loading }}>{children}</AuthContext.Provider>;

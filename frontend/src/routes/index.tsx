@@ -36,19 +36,19 @@ export function Index() {
       <title>DoingGood - Give and get items in Lagos</title>
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-20 sm:px-6 sm:pt-28 md:pb-24">
-          <h1 className="max-w-4xl text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl md:text-7xl">
+        <div className="mx-auto w-full max-w-7xl px-4 pb-14 pt-12 sm:px-6 sm:pt-28 md:pb-24">
+          <h1 className="max-w-4xl text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl md:text-7xl">
             Your nothing is <span className="text-primary">someone's everything.</span>
           </h1>
-          <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
+          <p className="mt-5 max-w-2xl text-base leading-8 text-muted-foreground sm:mt-6 sm:text-lg">
             Give it forward or give it a second life. Find free and paid furniture, clothes,
             appliances, books and more from people across Lagos.
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button variant="hero" size="lg" asChild>
+          <div className="mt-7 grid max-w-md grid-cols-2 gap-3 sm:mt-8 sm:flex">
+            <Button variant="hero" size="lg" className="w-full sm:w-auto" asChild>
               <Link to="/give">Give an item</Link>
             </Button>
-            <Button variant="outline" size="lg" asChild>
+            <Button variant="outline" size="lg" className="w-full sm:w-auto" asChild>
               <a href="#browse">Browse new items</a>
             </Button>
           </div>
@@ -57,7 +57,7 @@ export function Index() {
 
       {/* Search + filters + grid */}
       <section id="browse" className="scroll-mt-20">
-        <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6">
+        <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <h2 className="section-title">Available right now</h2>
             <div className="relative w-full md:max-w-sm">

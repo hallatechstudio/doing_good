@@ -373,8 +373,8 @@ export function OrderHistoryPage() {
   };
   const visible = lists[view];
   const heading: Record<OrderView, string> = {
-    buying: "Items you are receiving",
-    selling: "Items you are giving",
+    buying: "Items as a receiver",
+    selling: "Items as a giver",
     all: "All items",
   };
   const empty: Record<OrderView, string> = {
@@ -403,8 +403,8 @@ export function OrderHistoryPage() {
             onChange={(event) => setView(event.target.value as OrderView)}
             className="h-10 rounded-md border border-input bg-transparent px-3 text-sm font-medium shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
-            <option value="buying">Receiving</option>
-            <option value="selling">Giving</option>
+            <option value="buying">Receiver</option>
+            <option value="selling">Giver</option>
             {admin && otherOrders.length > 0 && <option value="all">All orders</option>}
           </select>
         </div>
@@ -412,17 +412,17 @@ export function OrderHistoryPage() {
       {(purchases.length > 0 || sales.length > 0) && (
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border border-border bg-card p-5">
-            <p className="eyebrow">RECEIVING</p>
+            <p className="eyebrow">RECEIVER</p>
             <p className="mt-2 text-3xl font-extrabold">{purchases.length}</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              {purchases.length === 1 ? "item receiving" : "items receiving"}
+              {purchases.length === 1 ? "item as receiver" : "items as receiver"}
             </p>
           </div>
           <div className="rounded-2xl border border-border bg-card p-5">
-            <p className="eyebrow">GIVING</p>
+            <p className="eyebrow">GIVER</p>
             <p className="mt-2 text-3xl font-extrabold">{sales.length}</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              {sales.length === 1 ? "item given" : "items given"}
+              {sales.length === 1 ? "item as giver" : "items as giver"}
             </p>
           </div>
         </div>
@@ -430,7 +430,7 @@ export function OrderHistoryPage() {
       <section className="space-y-4">
         <div>
           <p className="eyebrow">
-            {view === "buying" ? "RECEIVING" : view === "selling" ? "GIVING" : "ALL"}
+            {view === "buying" ? "RECEIVER" : view === "selling" ? "GIVER" : "ALL"}
           </p>
           <h2 className="text-xl font-bold">{heading[view]}</h2>
         </div>
