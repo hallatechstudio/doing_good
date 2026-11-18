@@ -5,9 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * DoingGood design system - dark-only, drawn from the pitch deck:
- * pure black stage, white type, soft blue #4A9EFF accent,
- * charcoal cards, deep blue highlight panel.
+ * DoingGood design system. Light mode is readable by default; dark mode preserves
+ * the original high-contrast black stage and white type.
  */
 
 @theme inline {
@@ -44,14 +43,36 @@
 
 :root {
   --radius: 0.75rem;
-  /* near-black stage with a hint of the brand blue */
+  --background: oklch(0.985 0.005 255);
+  --foreground: oklch(0.18 0.018 265);
+  --card: #ffffff;
+  --card-foreground: oklch(0.18 0.018 265);
+  --popover: #ffffff;
+  --popover-foreground: oklch(0.18 0.018 265);
+  --primary: #287ce8;
+  --primary-foreground: #ffffff;
+  --secondary: oklch(0.94 0.012 255);
+  --secondary-foreground: oklch(0.18 0.018 265);
+  --muted: oklch(0.95 0.008 255);
+  --muted-foreground: oklch(0.43 0.018 265);
+  --accent: oklch(0.92 0.025 250);
+  --accent-foreground: oklch(0.18 0.018 265);
+  --destructive: oklch(0.62 0.21 25);
+  --destructive-foreground: #ffffff;
+  --border: oklch(0.86 0.012 255);
+  --input: oklch(0.82 0.012 255);
+  --ring: oklch(0.66 0.16 250 / 60%);
+  --panel: oklch(0.92 0.035 250);
+  --panel-foreground: oklch(0.18 0.018 265);
+}
+
+.dark {
   --background: #000000;
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.15 0.016 265);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.13 0.016 265);
   --popover-foreground: oklch(0.985 0 0);
-  /* soft blue #4A9EFF */
   --primary: #4A9EFF;
   --primary-foreground: oklch(0.12 0.03 265);
   --secondary: oklch(0.2 0.02 265);
@@ -60,12 +81,9 @@
   --muted-foreground: oklch(0.67 0.015 265);
   --accent: oklch(0.22 0.03 265);
   --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.62 0.21 25);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(1 0 0 / 8%);
   --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.66 0.16 250 / 60%);
-  /* deep blue highlight panel (#1F4E79-ish) */
   --panel: oklch(0.45 0.09 255);
   --panel-foreground: oklch(0.985 0 0);
 }

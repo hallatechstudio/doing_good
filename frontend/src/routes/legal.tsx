@@ -98,7 +98,7 @@ export function PrivacyPage() {
         <h2>3. What other people can see</h2>
         <p>
           Listings, photographs, your donor name and the neighbourhood you provide can be viewed
-          without an account. A signed-in user can message a free-item giver on WhatsApp. For paid orders, contact details are shared with the getter and giver after
+          without an account. A signed-in user can message a free-item giver on WhatsApp. For paid orders, contact details are shared with the receiver and giver after
           payment. Authorised support staff can review order and dispute information to resolve
           problems. Your email address and password hash are not included in public listing
           responses. Information you publish may be copied or shared by others.
@@ -236,15 +236,15 @@ export function TermsPage() {
           reserve it or guarantee availability.
         </p>
         <p>
-          When held payments are available, payment is released after the getter confirms receipt or
-          the giver reports delivery and the getter raises no dispute within 24 hours of being
+          When held payments are available, payment is released after the receiver confirms receipt or
+          the giver confirms delivery and the receiver raises no dispute within 24 hours of being
           notified. A dispute keeps the payment held while support reviews the issue. Earlier direct
           payments follow the terms shown when they were placed.
         </p>
         <p>
           DoingGood retains a 20% platform commission from a completed paid item. The giver's 80%
           share becomes available in their DoingGood wallet only after payment release. A refund
-          returns 99% of the paid amount to the getter and retains 1% as the refund-processing charge.
+          returns 99% of the paid amount to the receiver and retains 1% as the refund-processing charge.
           Any listed delivery fee is included in the checkout total when you select delivery.
           Mandatory consumer, chargeback and data protection rights still apply.
         </p>

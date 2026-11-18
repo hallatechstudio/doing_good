@@ -5,11 +5,13 @@ import {
   isRouteErrorResponse,
   useRouteError,
 } from "react-router-dom";
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/lib/auth-context";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { CartProvider } from "@/lib/cart";
+import { ThemeProvider } from "@/lib/theme-context";
 
 export function NotFoundPage() {
   return (
@@ -29,6 +31,14 @@ export function NotFoundPage() {
 export function RouteError() {
   const error = useRouteError();
   if (isRouteErrorResponse(error) && error.status === 404) return <NotFoundPage />;
+  if (isRouteErrorResponse(error) && error.status === 403)
+    return (
+      <div role="alert" className="px-4 py-24 text-center">
+        <h1 className="text-xl font-semibold">Administrator access required</h1>
+        <p className="mt-2 text-muted-foreground">Sign in with the email configured in COMMERCE_ADMIN_EMAILS, then try again.</p>
+        <Link to="/" className="mt-6 inline-block text-primary">Go home</Link>
+      </div>
+    );
   return (
     <div role="alert" className="px-4 py-24 text-center">
       <h1 className="text-xl font-semibold">This page didn't load</h1>
@@ -46,9 +56,22 @@ export function RouteError() {
 }
 
 export function RootLayout() {
+  useEffect(() => {
+    const preload = window.setTimeout(() => {
+      void Promise.all([
+        import("./cart"),
+        import("./checkout"),
+        import("./order-history"),
+        import("./wallet"),
+        import("./admin"),
+      ]);
+    }, 800);
+    return () => window.clearTimeout(preload);
+  }, []);
   return (
-    <AuthProvider>
-      <CartProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <CartProvider>
         <div className="flex min-h-screen flex-col bg-background font-sans text-foreground">
           <SiteHeader />
           <main className="flex-1">
@@ -58,7 +81,8 @@ export function RootLayout() {
         </div>
         <Toaster />
         <ScrollRestoration />
-      </CartProvider>
-    </AuthProvider>
+        </CartProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

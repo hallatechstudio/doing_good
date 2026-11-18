@@ -2,11 +2,10 @@ import { useState } from "react";
 import { Link, redirect, useLoaderData, useRevalidator } from "react-router-dom";
 import { Plus, Package, UserRound, Pencil } from "lucide-react";
 import { toast } from "sonner";
-import { ApiError, getDashboard, updateListingStatus, updateProfile } from "@/lib/api";
+import { ApiError, getDashboard, updateProfile } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { STATUS_LABELS } from "@/lib/site";
 import { EditListingDialog } from "@/components/edit-listing-dialog";
 import type { Item } from "@/lib/types";
 export async function dashboardLoader() {
@@ -24,24 +23,12 @@ export function DashboardPage() {
   const [tab, setTab] = useState(data.profile.phone ? "listings" : "profile");
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<Item | null>(null);
-  async function status(id: string, value: string) {
-    setBusy(true);
-    try {
-      await updateListingStatus(id, value);
-      toast.success("Listing updated.");
-      await revalidator.revalidate();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not update listing.");
-    } finally {
-      setBusy(false);
-    }
-  }
   async function saveProfile(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     setBusy(true);
     try {
-      await updateProfile(String(form.get("name")).trim(), String(form.get("phone")).trim());
+      await updateProfile(String(form.get("phone")).trim());
       toast.success("Profile saved. You can now list items.");
       await revalidator.revalidate();
     } catch (error) {
@@ -147,22 +134,11 @@ export function DashboardPage() {
                       <Pencil className="size-4" />
                       Edit
                     </Button>
-                    <label className="text-sm">
-                      <span className="sr-only">Status for {item.title}</span>
-                      <select
-                        aria-label={"Status for " + item.title}
-                        value={item.status === "sold" ? "sold" : "available"}
-                        disabled={busy}
-                        onChange={(event) => status(item.id, event.target.value)}
-                        className="rounded-lg border border-input bg-background p-2"
-                      >
-                        {(["available", "sold"] as const).map((value) => (
-                          <option key={value} value={value}>
-                            {STATUS_LABELS[value]}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                    <div className="rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                      <span className={item.quantity === 0 ? "font-semibold text-destructive" : "font-semibold text-primary"}>
+                        {item.quantity === 0 ? "Out of Stock" : `${item.quantity ?? 1} in stock`}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </article>
@@ -177,17 +153,6 @@ export function DashboardPage() {
           >
             <h2 className="text-xl font-semibold">Your profile</h2>
             <div className="space-y-2">
-              <Label htmlFor="profile-name">Full name</Label>
-              <Input
-                id="profile-name"
-                name="name"
-                required
-                minLength={2}
-                maxLength={100}
-                defaultValue={data.profile.full_name}
-              />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="profile-phone">WhatsApp number</Label>
               <Input
                 id="profile-phone"
@@ -201,8 +166,7 @@ export function DashboardPage() {
                 defaultValue={data.profile.phone}
               />
               <p className="text-sm text-muted-foreground">
-                Include your country code. This number is visible on your listings so people can
-                contact you.
+                Include your country code. Changing this number may prevent messages or payouts for active transactions from reaching you.
               </p>
             </div>
             <Button variant="hero" disabled={busy}>

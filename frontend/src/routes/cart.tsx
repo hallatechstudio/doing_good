@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLoaderData, useNavigate } from "react-router-dom";
-import { ShoppingCart, Trash2 } from "lucide-react";
+import { Share2, ShoppingCart, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ItemDetailsDialog } from "@/components/item-details-dialog";
 import { findItem } from "@/lib/api";
@@ -24,6 +24,18 @@ export function CartPage() {
     const entry = entries.find((entry) => entry.id === id);
     return !entry?.item || entry.item.status !== "available" || entry.item.owner_id === userId;
   });
+  async function shareItem(item: Item) {
+    const url = new URL(`/api/share/items/${item.id}`, window.location.origin).toString();
+    const text = `${item.title} — ${item.description.slice(0, 140)}`;
+    try {
+      if (navigator.share) await navigator.share({ title: item.title, text, url });
+      else {
+        await navigator.clipboard.writeText(url);
+      }
+    } catch {
+      // Closing the native share menu is expected and needs no error message.
+    }
+  }
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-20">
       <title>Your cart | DoingGood</title>
@@ -92,6 +104,7 @@ export function CartPage() {
                       View item
                     </Button>
                   )}
+                  {item && <Button size="sm" className="bg-violet-600 text-white hover:bg-violet-700" onClick={() => void shareItem(item)}><Share2 className="size-4" />Share</Button>}
                   <Button
                     size="sm"
                     variant="ghost"

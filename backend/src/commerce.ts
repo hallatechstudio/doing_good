@@ -116,7 +116,7 @@ async function sendOrderPaidEmails(order: {
     sendEmail(
       order.seller.email,
       `Someone just paid for ${order.item.title}`,
-      `Someone just paid for ${order.item.title}.\n\nGetter: ${order.buyer.full_name}\nAmount: ${amount}\nPayment reference: ${order.reference}\n\nHand over the item, then report the delivery or pickup from your sales at ${ordersUrl}. We only release the payment to you after the getter confirms they received the item.`,
+      `Someone just paid for ${order.item.title}.\n\nReceiver: ${order.buyer.full_name}\nAmount: ${amount}\nPayment reference: ${order.reference}\n\nHand over the item, then confirm delivery from your sales at ${ordersUrl}. We only release the payment to you after the receiver confirms they received the item.`,
     ),
     sendEmail(
       order.buyer.email,
@@ -403,7 +403,6 @@ export function mountCommerce(app: Express, authenticate: Authenticate) {
         held_payment:
           Boolean(o.paid_at),
         wallet_release: o.recipient === "WALLET_PENDING",
-        delivery_note: o.delivery_note,
         dispute_reason: o.dispute_reason,
         resolution_note: o.resolution_note,
         buyer: o.buyer.full_name,
@@ -532,10 +531,10 @@ export function mountCommerce(app: Express, authenticate: Authenticate) {
   app.post("/api/orders/:id/deliver", async (req, res) => {
     const seller = await authenticate(req);
     const id = idInput.parse(req.params["id"]);
-    const { note } = z.object({ note: z.string().trim().min(10).max(2000) }).parse(req.body);
+    const { note } = z.object({ note: z.string().trim().min(1).max(2000).optional() }).parse(req.body);
     const updated = await db.order.updateMany({
       where: { id, seller_id: seller.id, status: "paid" },
-      data: { status: "delivery_pending", delivery_note: note },
+      data: { status: "delivery_pending", delivery_note: note ?? null },
     });
     if (!updated.count)
       throw new HttpError(409, "Only the seller can report delivery of a paid order.");
@@ -742,7 +741,7 @@ export async function processCommerce(itemScope?: string[]) {
         await sendEmail(
           o.buyer.email,
           `Please review delivery: ${o.item.title}`,
-          `The giver reports delivery of ${o.item.title}. ${o.delivery_note}\n\nPayment reference: ${o.reference}. Open Order history at ${new URL("/orders", process.env["APP_URL"] || "http://localhost:5173")} to confirm receipt or dispute delivery. If you take no action within 24 hours of this notice, the payment becomes eligible for release. Only confirm once you have received and checked the item.`,
+          `The giver reports delivery of ${o.item.title}.${o.delivery_note ? ` ${o.delivery_note}` : ""}\n\nOpen Order history at ${new URL("/orders", process.env["APP_URL"] || "http://localhost:5173")} to confirm receipt or dispute delivery. If you take no action within 24 hours of this notice, the payment becomes eligible for release. Only confirm once you have received and checked the item.`,
         );
         const now = new Date();
         await db.order.updateMany({

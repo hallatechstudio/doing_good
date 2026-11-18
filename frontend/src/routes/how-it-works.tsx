@@ -35,7 +35,7 @@ const journeys = {
     {
       icon: Truck,
       title: "Plan pick-up or delivery.",
-      body: "Arrange collection on WhatsApp for free items. For paid orders, message the getter and mark the item ready for pickup or shipped in Order history.",
+      body: "Arrange collection on WhatsApp for free items. For paid orders, message the receiver and confirm delivery in Order history.",
     },
   ],
 };

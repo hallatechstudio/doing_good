@@ -167,10 +167,11 @@ export function EditListingDialog({
               name="quantity"
               type="number"
               required
-              min="1"
+              min="0"
               max="10000"
               defaultValue={item.quantity ?? 1}
             />
+            <p className="text-xs text-muted-foreground">Set this to 0 to mark the item out of stock. Add stock here whenever you have more.</p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="edit-description">Description</Label>

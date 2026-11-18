@@ -18,6 +18,7 @@ export const CONDITIONS = [
 
 export const STATUS_LABELS: Record<string, string> = {
   available: "Available",
+  out_of_stock: "Out of Stock",
   sold: "Sold",
   pending: "On hold",
   matched: "Matched",

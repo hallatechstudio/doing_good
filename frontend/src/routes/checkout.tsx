@@ -94,7 +94,7 @@ export function CheckoutPage() {
     setBusy(true);
     setError("");
     try {
-      if (needsPhone) await updateProfile(profile.full_name, formattedPhone);
+      if (needsPhone) await updateProfile(formattedPhone);
       const checkout = await buyItem(paid[0]!.id, method);
       sessionStorage.setItem(
         `doinggood.pending-payment.${checkout.reference}`,

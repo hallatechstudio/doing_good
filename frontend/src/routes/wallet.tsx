@@ -118,13 +118,13 @@ export function WalletPage() {
         <p className="eyebrow">YOUR WALLET</p>
         <h1 className="section-title">Earnings and releases</h1>
         <p className="mt-2 text-muted-foreground">
-          Released amounts are ready to withdraw after getter confirmation or the delivery review
+          Released amounts are ready to withdraw after receiver confirmation or the delivery review
           period.
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <section className="rounded-2xl border border-primary/30 bg-primary/10 p-6">
-          <p className="text-sm">Available to withdraw</p>
+          <p className="text-sm">Net payout available</p>
           <p className="mt-2 text-3xl font-extrabold">{walletAmount(wallet.available)}</p>
           <Button
             className="mt-5"
@@ -138,17 +138,11 @@ export function WalletPage() {
           <p className="text-sm text-muted-foreground">Pending release</p>
           <p className="mt-2 text-3xl font-extrabold">{walletAmount(wallet.pending)}</p>
           <p className="mt-5 text-sm leading-6 text-muted-foreground">
-            This becomes available once the getter confirms receipt or the delivery review ends.
+            This item becomes available once the receiver confirms receipt of the item, or 24 hours after you confirm delivery of the item.
           </p>
         </section>
       </div>
-      <section className="rounded-xl border border-border bg-card p-4 sm:p-5">
-        <p className="font-semibold">Platform commission: {wallet.commission_rate}%</p>
-        <p className="mt-1 text-sm leading-6 text-muted-foreground">
-          DoingGood keeps 20% from completed paid items. The remaining 80% is released to your
-          wallet after the getter confirms receipt or the review period ends.
-        </p>
-      </section>
+      <p className="text-sm text-muted-foreground">Your net payout reflects the {wallet.commission_rate}% DoingGood commission.</p>
       <section className="space-y-3">
         <h2 className="text-xl font-bold">Transactions</h2>
         {!wallet.transactions.length ? (

@@ -49,7 +49,7 @@ const phoneInput = z
       ),
   );
 const listingInput = z.object({
-  quantity: z.number().int().min(1).max(10000).default(1),
+  quantity: z.number().int().min(0).max(10000).default(1),
   price_kobo: z.union([z.literal(0), z.number().int().min(10000).max(100_000_000)]).default(0),
   pickup_available: z.boolean().default(true),
   delivery_fee_kobo: z.number().int().min(0).max(10_000_000).nullable().default(null),
@@ -87,7 +87,7 @@ const photoEntry = z.union([
     .regex(/^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/),
 ]);
 const updateListingInput = z.object({
-  quantity: z.number().int().min(1).max(10000).default(1),
+  quantity: z.number().int().min(0).max(10000).default(1),
   price_kobo: z.union([z.literal(0), z.number().int().min(10000).max(100_000_000)]).default(0),
   pickup_available: z.boolean().default(true),
   delivery_fee_kobo: z.number().int().min(0).max(10_000_000).nullable().default(null),
@@ -155,11 +155,13 @@ const itemView = (
   return {
     ...rest,
     status:
-      quantity <= 0 ? "sold" : rest["status"] === "reserved" ? "available" : rest["status"],
+      quantity <= 0 ? "out_of_stock" : rest["status"] === "reserved" ? "available" : rest["status"],
     donor_name: owner.full_name,
     donor_whatsapp: includeFreeContact && !(Number(rest["price_kobo"]) > 0) ? owner.phone : "",
   };
 };
+const escapeHtml = (value: string) =>
+  value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]!);
 export function createApp() {
   const app = express();
   app.disable("x-powered-by");
@@ -336,13 +338,31 @@ export function createApp() {
     if (typeof token === "string") await db.session.deleteMany({ where: { id: hash(token) } });
     res.clearCookie(cookieName, cookieOptions).json({ ok: true });
   });
+  // Social apps do not execute the React application, so they need an HTML response with
+  // item-specific Open Graph metadata before the visitor is redirected to the product page.
+  app.get("/api/share/items/:id", async (req, res) => {
+    if (!uuid.safeParse(req.params["id"]).success)
+      return void res.status(404).type("html").send("<title>Item not found</title>");
+    const item = await db.item.findUnique({
+      where: { id: String(req.params["id"]) },
+      select: { id: true, title: true, description: true, photos: true },
+    });
+    if (!item) return void res.status(404).type("html").send("<title>Item not found</title>");
+    const appUrl = new URL(process.env["APP_URL"] || "http://localhost:5173");
+    const itemUrl = new URL(`/items/${item.id}`, appUrl).toString();
+    const shareUrl = new URL(`/api/share/items/${item.id}`, appUrl).toString();
+    const title = `${item.title} | DoingGood`;
+    const description = item.description.replace(/\s+/g, " ").trim().slice(0, 300);
+    const image = item.photos[0] || new URL("/favicon.svg", appUrl).toString();
+    res.type("html").send(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)}</title><meta name="description" content="${escapeHtml(description)}"><meta property="og:type" content="product"><meta property="og:site_name" content="DoingGood"><meta property="og:url" content="${escapeHtml(shareUrl)}"><meta property="og:title" content="${escapeHtml(title)}"><meta property="og:description" content="${escapeHtml(description)}"><meta property="og:image" content="${escapeHtml(image)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeHtml(title)}"><meta name="twitter:description" content="${escapeHtml(description)}"><meta name="twitter:image" content="${escapeHtml(image)}"><meta http-equiv="refresh" content="0;url=${escapeHtml(itemUrl)}"></head><body><p>Opening <a href="${escapeHtml(itemUrl)}">${escapeHtml(item.title)}</a>…</p><script>location.replace(${JSON.stringify(itemUrl)})</script></body></html>`);
+  });
   app.get("/api/items", async (req, res) => {
     const profile = await user(req);
     const page = z.coerce.number().int().min(0).max(10000).default(0).parse(req.query["page"]);
     const items = await db.item.findMany({
       where: {
         OR: [
-          { status: { in: ["available", "pending"] } },
+          { status: { in: ["available", "pending"] }, quantity: { gt: 0 } },
           { status: "reserved", quantity: { gt: 0 } },
         ],
       },
@@ -419,7 +439,6 @@ export function createApp() {
     const profile = await requireUser(req);
     const data = z
       .object({
-        full_name: z.string().trim().min(2).max(100),
         phone: phoneInput,
       })
       .parse(req.body);
@@ -500,7 +519,11 @@ export function createApp() {
       try {
         await db.item.update({
           where: { id },
-          data: { ...data, photos: [...keepUrls, ...uploaded.map((a) => a.url)] },
+          data: {
+            ...data,
+            status: data.quantity > 0 ? "available" : "sold",
+            photos: [...keepUrls, ...uploaded.map((a) => a.url)],
+          },
         });
         if (removedPublicIds.length) void removeUploadedPhotos(removedPublicIds).catch(() => {});
         res.json({ ok: true });

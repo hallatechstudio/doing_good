@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { currentUser, getOrderHistory, updateHeldOrder, type OrderHistoryEntry } from "@/lib/api";
 import { itemPrice } from "@/lib/site";
 import { WhatsAppIcon } from "@/components/whatsapp-icon";
-import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
 export async function orderHistoryLoader() {
@@ -48,7 +47,6 @@ function HeldOrderActions({
   buying: boolean;
   selling: boolean;
 }) {
-  const [detail, setDetail] = useState("");
   const [busy, setBusy] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const { revalidate, state } = useRevalidator();
@@ -60,8 +58,7 @@ function HeldOrderActions({
     if (disabled) return;
     setBusy(true);
     try {
-      await updateHeldOrder(order.id, action, detail.trim());
-      setDetail("");
+      await updateHeldOrder(order.id, action, "");
       await revalidate();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not update the order.");
@@ -118,29 +115,9 @@ function HeldOrderActions({
         </DialogContent>
       </Dialog>
       {reportDelivery && (
-        <form
-          className="space-y-2"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void update("deliver");
-          }}
-        >
-          <label className="block text-sm font-medium">
-            Delivery details
-            <Textarea
-              className="mt-1"
-              required
-              minLength={10}
-              maxLength={2000}
-              value={detail}
-              onChange={(event) => setDetail(event.target.value)}
-              disabled={disabled}
-            />
-          </label>
-          <Button type="submit" variant="outline" disabled={disabled || detail.trim().length < 10}>
-            Mark delivered
-          </Button>
-        </form>
+        <Button type="button" variant="outline" disabled={disabled} onClick={() => void update("deliver")}>
+          Mark delivered
+        </Button>
       )}
       {buying && canDispute && (
         <Button asChild variant="outline">
@@ -255,7 +232,7 @@ function orderStage(order: OrderHistoryEntry, buying: boolean) {
         label: "Payment held",
         detail: buying
           ? "Message the giver to arrange pickup or delivery."
-          : "Message the getter to arrange pickup or delivery, then report delivery.",
+          : "Message the receiver to arrange pickup or delivery, then confirm delivery.",
       };
     case "delivery_pending":
       return { label: "Delivery being reported", detail: "The delivery review is being prepared." };
@@ -264,7 +241,7 @@ function orderStage(order: OrderHistoryEntry, buying: boolean) {
         label: "Delivery under review",
         detail: buying
           ? "Confirm receipt when the item arrives, or dispute delivery before the deadline."
-          : "The getter has 24 hours to confirm receipt or raise a dispute.",
+          : "The receiver has 24 hours to confirm receipt or raise a dispute.",
       };
     case "disputed":
       return {
@@ -284,7 +261,7 @@ function orderStage(order: OrderHistoryEntry, buying: boolean) {
             : "The payment was sent directly to your verified bank account.",
       };
     case "refunded":
-      return { label: "Refunded", detail: "The payment has been returned to the getter." };
+      return { label: "Refunded", detail: "The payment has been returned to the receiver." };
     default:
       return {
         label: order.status.replaceAll("_", " "),
@@ -293,7 +270,7 @@ function orderStage(order: OrderHistoryEntry, buying: boolean) {
   }
 }
 
-function OrderCard({ order, user_id }: { order: OrderHistoryEntry; user_id: string }) {
+export function OrderCard({ order, user_id }: { order: OrderHistoryEntry; user_id: string }) {
   const buying = order.buyer_id === user_id;
   const selling = order.seller_id === user_id;
   const stage = orderStage(order, buying);
@@ -327,7 +304,7 @@ function OrderCard({ order, user_id }: { order: OrderHistoryEntry; user_id: stri
             {buying
               ? `Giver: ${order.seller}`
               : selling
-                ? `Getter: ${order.buyer}`
+                ? `Receiver: ${order.buyer}`
                 : `${order.buyer} · ${order.seller}`}
           </p>
         </div>
@@ -354,12 +331,15 @@ function OrderCard({ order, user_id }: { order: OrderHistoryEntry; user_id: stri
           </Button>
         )}
         {order.held_payment && <HeldOrderActions order={order} buying={buying} selling={selling} />}
-        <div className="mt-auto pt-1">
+        <div className="mt-auto flex flex-wrap items-center gap-4 pt-1">
           <MessageContact
             phone={order.contact}
-            label={buying ? "Message giver" : "Message getter"}
+            label={buying ? "Message giver" : "Message receiver"}
             message={`Hi! I'm getting in touch about ${order.title} on DoingGood (order ${order.reference}).`}
           />
+          <Link to={`/orders/${order.id}`} className="text-sm font-semibold text-primary hover:underline">
+            View order
+          </Link>
         </div>
         {buying && (order.can_track_handoff || order.status === "released") && (
           <Button asChild variant="ghost">
@@ -393,12 +373,12 @@ export function OrderHistoryPage() {
   };
   const visible = lists[view];
   const heading: Record<OrderView, string> = {
-    buying: "Items you are getting",
+    buying: "Items you are receiving",
     selling: "Items you are giving",
     all: "All items",
   };
   const empty: Record<OrderView, string> = {
-    buying: "No requested items yet.",
+    buying: "No received items yet.",
     selling: "No given items yet.",
     all: "No items yet.",
   };
@@ -412,6 +392,7 @@ export function OrderHistoryPage() {
             Keep every item request and giveaway in one place. Arrange handover on WhatsApp.
           </p>
         </div>
+        {admin && <Link to="/admin" className="text-sm font-semibold text-primary hover:underline">Admin overview</Link>}
         <div className="flex items-center gap-2">
           <label htmlFor="order-view" className="text-sm font-medium text-muted-foreground">
             Show
@@ -422,7 +403,7 @@ export function OrderHistoryPage() {
             onChange={(event) => setView(event.target.value as OrderView)}
             className="h-10 rounded-md border border-input bg-transparent px-3 text-sm font-medium shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
-            <option value="buying">Getting</option>
+            <option value="buying">Receiving</option>
             <option value="selling">Giving</option>
             {admin && otherOrders.length > 0 && <option value="all">All orders</option>}
           </select>
@@ -431,10 +412,10 @@ export function OrderHistoryPage() {
       {(purchases.length > 0 || sales.length > 0) && (
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border border-border bg-card p-5">
-            <p className="eyebrow">GETTING</p>
+            <p className="eyebrow">RECEIVING</p>
             <p className="mt-2 text-3xl font-extrabold">{purchases.length}</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              {purchases.length === 1 ? "item getting" : "items getting"}
+              {purchases.length === 1 ? "item receiving" : "items receiving"}
             </p>
           </div>
           <div className="rounded-2xl border border-border bg-card p-5">
@@ -449,7 +430,7 @@ export function OrderHistoryPage() {
       <section className="space-y-4">
         <div>
           <p className="eyebrow">
-            {view === "buying" ? "GETTING" : view === "selling" ? "GIVING" : "ALL"}
+            {view === "buying" ? "RECEIVING" : view === "selling" ? "GIVING" : "ALL"}
           </p>
           <h2 className="text-xl font-bold">{heading[view]}</h2>
         </div>

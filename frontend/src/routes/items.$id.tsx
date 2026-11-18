@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLoaderData } from "react-router-dom";
-import { Copy, MapPin, ShoppingCart } from "lucide-react";
+import { MapPin, Share2, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { WhatsAppIcon } from "@/components/whatsapp-icon";
@@ -13,22 +13,28 @@ export function ItemDetail() {
   const item = useLoaderData() as Item;
   const { userId } = useAuth();
   const cart = useCart();
-  const [copying, setCopying] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const paid = (item.price_kobo || 0) > 0;
   const own = item.owner_id === userId;
   const digits = item.donor_whatsapp.replace(/\D/g, "");
-  const productUrl = window.location.href;
-  const whatsapp = `Hi, I’m interested in getting the ${item.title}. Is it still available? ${productUrl}`;
+  const shareUrl = new URL(`/api/share/items/${item.id}`, window.location.origin).toString();
+  const shareText = `${item.title} — ${item.description.slice(0, 140)}`;
+  const whatsapp = `Hi, I’m interested in getting the ${item.title}. Is it still available? ${shareUrl}`;
 
-  async function copyLink() {
-    setCopying(true);
+  async function shareItem() {
+    setSharing(true);
     try {
-      await navigator.clipboard.writeText(productUrl);
-      toast.success("Product link copied.");
+      if (navigator.share) {
+        await navigator.share({ title: item.title, text: shareText, url: shareUrl });
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success("Share link copied.");
+      }
     } catch {
-      toast.error("Could not copy the product link. Copy it from your browser address bar.");
+      // Closing a device share sheet is not an error; only show a fallback if it is unavailable.
+      if (!navigator.share) toast.error("Could not copy the share link. Copy it from your browser address bar.");
     } finally {
-      setCopying(false);
+      setSharing(false);
     }
   }
 
@@ -46,25 +52,22 @@ export function ItemDetail() {
           <h1 className="section-title">{item.title}</h1>
           <p className="text-muted-foreground">{conditionLabel(item.condition)} · {item.location}</p>
           <p className="text-3xl font-extrabold text-primary">{itemPrice(item.price_kobo)}</p>
+          {item.status === "out_of_stock" && (
+            <p className="inline-flex w-fit rounded-full bg-destructive/10 px-3 py-1 text-sm font-semibold text-destructive">Out of Stock</p>
+          )}
           <p className="whitespace-pre-wrap leading-7 text-muted-foreground">{item.description}</p>
           <p className="flex items-center gap-2 text-sm text-muted-foreground"><MapPin className="size-4" />{item.location}</p>
           {paid && <div className="text-sm text-muted-foreground">{item.pickup_available !== false && <p>Pickup available</p>}{item.delivery_fee_kobo != null && <p>Delivery to {item.delivery_area} · {itemPrice(item.delivery_fee_kobo)}</p>}</div>}
-          <div className="rounded-xl border border-border bg-card p-4">
-            <p className="text-sm font-semibold">Share this item</p>
-            <p className="mt-1 text-sm text-muted-foreground">Send this product link to anyone who may be interested.</p>
-            <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => void copyLink()} disabled={copying}>
-              <Copy className="size-4" /> {copying ? "Copying…" : "Copy product link"}
-            </Button>
-          </div>
           {!own && item.status === "available" && (paid ? (
             <div className="flex flex-wrap gap-3">
               <Button variant="outline" onClick={() => cart.add(item)}><ShoppingCart className="size-4" />{cart.ids.includes(item.id) ? "In cart" : "Add to cart"}</Button>
               <Button asChild variant="hero"><Link to={`/checkout/${item.id}`}>Get this item</Link></Button>
+              <Button type="button" className="bg-violet-600 text-white hover:bg-violet-700" onClick={() => void shareItem()} disabled={sharing}><Share2 className="size-4" />{sharing ? "Opening share…" : "Share"}</Button>
             </div>
           ) : userId && /^[1-9]\d{7,14}$/.test(digits) ? (
-            <Button asChild className="border-0 bg-emerald-600 text-white hover:bg-emerald-700"><a href={`https://wa.me/${digits}?text=${encodeURIComponent(whatsapp)}`} target="_blank" rel="noopener noreferrer"><WhatsAppIcon className="size-5" />Message Giver</a></Button>
+            <div className="flex flex-wrap gap-3"><Button asChild className="border-0 bg-emerald-600 text-white hover:bg-emerald-700"><a href={`https://wa.me/${digits}?text=${encodeURIComponent(whatsapp)}`} target="_blank" rel="noopener noreferrer"><WhatsAppIcon className="size-5" />Message Giver</a></Button><Button type="button" className="bg-violet-600 text-white hover:bg-violet-700" onClick={() => void shareItem()} disabled={sharing}><Share2 className="size-4" />Share</Button></div>
           ) : (
-            <Button asChild className="border-0 bg-emerald-600 text-white hover:bg-emerald-700"><Link to={`/auth?next=${encodeURIComponent(`/items/${item.id}`)}`}><WhatsAppIcon className="size-5" />Message Giver</Link></Button>
+            <div className="flex flex-wrap gap-3"><Button asChild className="border-0 bg-emerald-600 text-white hover:bg-emerald-700"><Link to={`/auth?next=${encodeURIComponent(`/items/${item.id}`)}`}><WhatsAppIcon className="size-5" />Message Giver</Link></Button><Button type="button" className="bg-violet-600 text-white hover:bg-violet-700" onClick={() => void shareItem()} disabled={sharing}><Share2 className="size-4" />Share</Button></div>
           ))}
         </section>
       </div>

@@ -1,15 +1,17 @@
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { LogOut, ShoppingCart } from "lucide-react";
+import { LogOut, Moon, ShoppingCart, Sun, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
 import { useCart } from "@/lib/cart";
 import { signOut } from "@/lib/api";
+import { useTheme } from "@/lib/theme-context";
 
 export function SiteHeader() {
-  const { userId } = useAuth();
+  const { userId, user } = useAuth();
   const { ids } = useCart();
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
   async function handleSignOut() {
     try {
       await signOut();
@@ -67,10 +69,18 @@ export function SiteHeader() {
               <span>{ids.length}</span>
             </Link>
           </Button>
+          <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`} title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
+            {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+          </Button>
           {userId ? (
-            <Button variant="ghost" size="icon" onClick={handleSignOut} aria-label="Sign out">
-              <LogOut className="size-4" />
-            </Button>
+            <>
+              <Button asChild variant="ghost" size="icon" aria-label={`Open ${user?.full_name || "your"} profile`} title="Profile">
+                <Link to="/dashboard"><UserRound className="size-4" /></Link>
+              </Button>
+              <Button variant="ghost" size="sm" onClick={handleSignOut} aria-label="Log out">
+                <LogOut className="size-4" /> <span className="hidden sm:inline">Log out</span>
+              </Button>
+            </>
           ) : (
             <Link
               to="/auth"

@@ -21,6 +21,7 @@
     "postinstall": "prisma generate",
     "check:cloudinary": "tsx scripts/check-cloudinary.ts",
     "photos:migrate": "tsx scripts/migrate-photos.ts"
+    ,"admin:seed": "tsx scripts/seed-admin.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",

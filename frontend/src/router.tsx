@@ -63,6 +63,22 @@ export const routes: RouteObject[] = [
             errorElement: <RouteError />,
           },
           {
+            path: "orders/:id",
+            lazy: async () => {
+              const order = await import("./routes/order.$id");
+              return { Component: order.OrderDetailPage, loader: order.orderDetailLoader };
+            },
+            errorElement: <RouteError />,
+          },
+          {
+            path: "admin",
+            lazy: async () => {
+              const admin = await import("./routes/admin");
+              return { Component: admin.AdminPage, loader: admin.adminLoader };
+            },
+            errorElement: <RouteError />,
+          },
+          {
             path: "wallet",
             lazy: async () => {
               const wallet = await import("./routes/wallet");

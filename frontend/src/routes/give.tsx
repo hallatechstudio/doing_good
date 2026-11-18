@@ -118,7 +118,7 @@ export function GivePage() {
         <span className="text-primary">A new beginning for someone.</span>
       </h1>
       <p className="mt-4 text-muted-foreground">
-        Give your item away or set an amount in naira. Listing is free. Getters of paid items use
+        Give your item away or set an amount in naira. Listing is free. Receivers of paid items use
         platform checkout. People can contact givers on WhatsApp for free items.
       </p>
       <form onSubmit={submit} className="mt-10 space-y-6">
@@ -200,7 +200,7 @@ export function GivePage() {
                       placeholder="0 for free delivery"
                     />
                     <p className="text-sm text-muted-foreground">
-                      This fee is added to the checkout total when the getter chooses delivery.
+                      This fee is added to the checkout total when the receiver chooses delivery.
                     </p>
                   </>
                 )}
@@ -329,7 +329,7 @@ export function GivePage() {
             {busy
               ? "Uploading and listing…"
               : pricing === "paid"
-                ? "List my item for getters"
+                ? "List my item for receivers"
                 : "List my free item"}
           </Button>
         </fieldset>

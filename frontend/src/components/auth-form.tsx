@@ -55,7 +55,7 @@ export function AuthForm({
     setBusy(true);
     try {
       if (profile) {
-        await updateProfile(fullName || profile.full_name, phone);
+        await updateProfile(phone);
         onDone();
       } else if (mode === "forgot") {
         const response = await forgotPassword(email);
@@ -117,7 +117,7 @@ export function AuthForm({
         </p>
       )}
       <form onSubmit={submit} className="mt-8 space-y-5">
-        {(profile || mode === "signup") && (
+        {!profile && mode === "signup" && (
           <div className="space-y-2">
             <Label htmlFor="auth-name">Full name</Label>
             <Input

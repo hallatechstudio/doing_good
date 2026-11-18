@@ -14,6 +14,12 @@ export function ItemCard({ item, onView }: { item: Item; onView: (item: Item) =>
   const { userId, loading } = useAuth();
   const own = userId === item.owner_id;
   const added = cart.ids.includes(item.id);
+  const [photoIndex, setPhotoIndex] = useState(0);
+  useEffect(() => {
+    if (item.photos.length < 2) return;
+    const timer = window.setInterval(() => setPhotoIndex((index) => (index + 1) % item.photos.length), 4000);
+    return () => window.clearInterval(timer);
+  }, [item.photos.length]);
   function add() {
     try {
       cart.add(item);
@@ -32,12 +38,13 @@ export function ItemCard({ item, onView }: { item: Item; onView: (item: Item) =>
         className="relative block aspect-square w-full overflow-hidden bg-muted"
       >
         <img
-          src={item.photos[0] || "/images/sofa.jpg"}
+          key={item.photos[photoIndex]}
+          src={item.photos[photoIndex] || "/images/sofa.jpg"}
           alt={item.title}
           loading="lazy"
           width={1024}
           height={1024}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+          className="h-full w-full animate-in fade-in duration-500 object-cover transition-transform group-hover:scale-[1.03]"
         />
         <Badge className="absolute left-3 top-3 bg-background/80 text-foreground backdrop-blur">
           {categoryLabel(item.category)}
@@ -47,6 +54,7 @@ export function ItemCard({ item, onView }: { item: Item; onView: (item: Item) =>
             {STATUS_LABELS[item.status] || item.status}
           </Badge>
         )}
+        {item.photos.length > 1 && <span className="absolute bottom-3 right-3 rounded-full bg-black/70 px-2 py-1 text-xs font-semibold text-white">{photoIndex + 1}/{item.photos.length}</span>}
       </button>
       <div className="flex flex-1 flex-col gap-3 p-4">
         <p className="text-lg font-bold text-primary">{itemPrice(item.price_kobo)}</p>
@@ -84,3 +92,4 @@ export function ItemCard({ item, onView }: { item: Item; onView: (item: Item) =>
     </article>
   );
 }
+import { useEffect, useState } from "react";

@@ -39,9 +39,16 @@ async function api<T>(path: string, method = "GET", data?: unknown): Promise<T> 
     );
   return body as T;
 }
-export const currentUser = () => api<Profile | null>("/auth/me");
+let currentUserCache: { value: Profile | null; expiresAt: number } | undefined;
+export async function currentUser() {
+  if (currentUserCache && currentUserCache.expiresAt > Date.now()) return currentUserCache.value;
+  const value = await api<Profile | null>("/auth/me");
+  currentUserCache = { value, expiresAt: Date.now() + 30_000 };
+  return value;
+}
 async function authenticate(path: string, data: unknown) {
   const profile = await api<Profile>(path, "POST", data);
+  currentUserCache = { value: profile, expiresAt: Date.now() + 30_000 };
   window.dispatchEvent(new CustomEvent(AUTH_EVENT, { detail: profile }));
   return profile;
 }
@@ -57,6 +64,7 @@ export async function resetPassword(token: string, password: string) {
 }
 export async function signOut() {
   await api("/auth/logout", "POST", {});
+  currentUserCache = { value: null, expiresAt: Date.now() + 30_000 };
   window.dispatchEvent(new CustomEvent(AUTH_EVENT, { detail: null }));
 }
 export async function listItems() {
@@ -95,8 +103,12 @@ export const updateListing = (
     delivery_area?: string | null;
   },
 ) => api(`/items/${id}`, "PATCH", data);
-export const updateProfile = (full_name: string, phone: string) =>
-  api<Profile>("/profile", "PATCH", { full_name, phone });
+export async function updateProfile(phone: string) {
+  const profile = await api<Profile>("/profile", "PATCH", { phone });
+  currentUserCache = { value: profile, expiresAt: Date.now() + 30_000 };
+  window.dispatchEvent(new CustomEvent(AUTH_EVENT, { detail: profile }));
+  return profile;
+}
 export const commerceSettings = () =>
   api<{ protected_checkout: boolean; test_payments?: boolean }>("/commerce");
 export const createTestPayment = (item_id: string, fulfillment_method: "pickup" | "delivery") =>
@@ -164,7 +176,7 @@ export const updateHeldOrder = (
   api<{ ok: boolean }>(
     `/orders/${encodeURIComponent(id)}/${action}`,
     "POST",
-    action === "deliver" ? { note: detail } : action === "dispute" ? { reason: detail } : {},
+    action === "deliver" ? (detail ? { note: detail } : {}) : action === "dispute" ? { reason: detail } : {},
   );
 export const verifyCheckout = (reference: string) =>
   api<{ ok: boolean; test_mode?: boolean }>("/payments/verify", "POST", { reference });
