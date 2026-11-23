@@ -147,6 +147,7 @@ model Order {
   checkout_url String?
   created_at DateTime @default(now())
   paid_at DateTime?
+  paid_amount Int?
   delivered_at DateTime?
   release_at DateTime?
   delivery_note String?

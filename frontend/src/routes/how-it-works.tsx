@@ -18,7 +18,7 @@ const journeys = {
     {
       icon: Truck,
       title: "Arrange the logistics.",
-      body: "For paid items, choose pickup or delivery at checkout and review the total before paying. After payment, message the giver and follow the handoff in Order history. For free items, agree on collection with the giver.",
+      body: "For paid items, choose pickup or delivery at checkout and review the total before paying. After payment, message the giver and arrange delivery. Your money is held until the receiver confirms delivery.",
     },
   ],
   give: [

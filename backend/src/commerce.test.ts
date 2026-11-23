@@ -356,8 +356,12 @@ test("marketplace integration: verified membership, reservations, dispute freeze
       (await request(app).get("/api/orders").set("Cookie", stranger.cookie)).body.orders.length,
       0,
     );
+    const buyerOrder = (await request(app).get("/api/orders").set("Cookie", buyer.cookie)).body
+      .orders[0];
+    assert.equal(buyerOrder.paid_amount, order.amount);
+    assert.ok(buyerOrder.paid_at);
     assert.equal(
-      (await request(app).get("/api/orders").set("Cookie", buyer.cookie)).body.orders[0].contact,
+      buyerOrder.contact,
       seller.phone,
     );
     assert.equal(

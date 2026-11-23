@@ -96,7 +96,12 @@ vi.mock("@/lib/api", () => ({
         id: "order-1",
         item_id: paid.id,
         title: paid.title,
-        amount: paid.price_kobo,
+        amount: paid.price_kobo + 250000,
+        delivery_fee_kobo: 250000,
+        fulfillment_method: "delivery",
+        paid_at: "2026-11-23T12:00:00.000Z",
+        paid_amount: paid.price_kobo + 250000,
+        held_payment: true,
         buyer_id: profile.id,
         seller_id: paid.owner_id,
         buyer: profile.full_name,
@@ -134,6 +139,9 @@ vi.mock("@/lib/api", () => ({
     profile.payout_name = "Tolu Ade";
     return { name: "Tolu Ade" };
   }),
+}));
+vi.mock("@/lib/payment-receipt-pdf", () => ({
+  downloadPaymentReceipt: vi.fn(),
 }));
 vi.mock("@/lib/navigation", () => ({ navigateTo: vi.fn() }));
 function open(path: string) {
@@ -394,12 +402,27 @@ describe("Browsing, cart and separate checkout", () => {
       await screen.findByRole("heading", { name: "Test payment confirmed" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/TEST ONLY: Paystack confirmed this sandbox payment/),
+      screen.getByText(/Payment confirmed\. Download your PDF receipt below/),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "View orders" })).toHaveAttribute(
-      "href",
-      "/orders",
+    expect(screen.getByRole("link", { name: "View orders" })).toHaveAttribute("href", "/orders");
+  });
+  it("shows the verified payment receipt after checkout", async () => {
+    state.signedIn = true;
+    const api = await import("@/lib/api");
+    const receiptPdf = await import("@/lib/payment-receipt-pdf");
+    open("/payment/return?reference=order-reference");
+    const download = await screen.findByRole("button", { name: "Download PDF receipt" });
+    expect(screen.queryByRole("region", { name: "Payment receipt" })).not.toBeInTheDocument();
+    fireEvent.click(download);
+    await waitFor(() =>
+      expect(receiptPdf.downloadPaymentReceipt).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reference: "order-reference",
+          paid_amount: paid.price_kobo + 250000,
+        }),
+      ),
     );
+    expect(api.verifyCheckout).toHaveBeenCalledWith("order-reference");
   });
   it("filters free and paid items without navigating away", async () => {
     open("/");
@@ -450,6 +473,20 @@ describe("Browsing, cart and separate checkout", () => {
   it("keeps order history private", async () => {
     const router = open("/orders");
     await waitFor(() => expect(router.state.location.pathname).toBe("/auth"));
+  });
+  it("makes a payment receipt available in order history", async () => {
+    state.signedIn = true;
+    const receiptPdf = await import("@/lib/payment-receipt-pdf");
+    open("/orders");
+    fireEvent.click(await screen.findByRole("button", { name: "Download PDF receipt" }));
+    await waitFor(() =>
+      expect(receiptPdf.downloadPaymentReceipt).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reference: "order-reference",
+          paid_amount: paid.price_kobo + 250000,
+        }),
+      ),
+    );
   });
   it("shows order history with WhatsApp links for the seller and giver", async () => {
     state.signedIn = true;

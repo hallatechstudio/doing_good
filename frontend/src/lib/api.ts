@@ -128,6 +128,8 @@ export type OrderHistoryEntry = {
   test_mode?: boolean;
   reference: string;
   created_at: string;
+  paid_at?: string | null;
+  paid_amount?: number | null;
   buyer: string;
   seller: string;
   contact: string | null;

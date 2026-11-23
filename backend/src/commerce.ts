@@ -171,15 +171,15 @@ export async function recordPayment(reference: string) {
     });
   } else if (order) {
     const claimed = await db.$transaction(async (tx) => {
-      const paid_at = new Date();
+      const paid_at = payment.paid_at ? new Date(payment.paid_at) : new Date();
       const paid = await tx.order.updateMany({
         where: { id: order.id, status: "pending_payment" },
-        data: { status: "paid", paid_at },
+        data: { status: "paid", paid_at, paid_amount: payment.amount },
       });
       if (!paid.count) {
         await tx.order.updateMany({
           where: { id: order.id, status: "payment_expired" },
-          data: { status: "refund_pending", paid_at },
+          data: { status: "refund_pending", paid_at, paid_amount: payment.amount },
         });
         return false;
       }
@@ -395,6 +395,8 @@ export function mountCommerce(app: Express, authenticate: Authenticate) {
         can_track_handoff: false,
         reference: o.reference,
         created_at: o.created_at,
+        paid_at: o.paid_at,
+        paid_amount: o.paid_amount,
         release_at: o.status === "delivered" ? o.release_at : null,
         accountability_until:
           o.status === "released" && o.release_at

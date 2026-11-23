@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { currentUser, getOrderHistory, updateHeldOrder, type OrderHistoryEntry } from "@/lib/api";
 import { itemPrice } from "@/lib/site";
+import { PaymentReceiptDownload } from "@/components/payment-receipt";
 import { WhatsAppIcon } from "@/components/whatsapp-icon";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
@@ -115,7 +116,12 @@ function HeldOrderActions({
         </DialogContent>
       </Dialog>
       {reportDelivery && (
-        <Button type="button" variant="outline" disabled={disabled} onClick={() => void update("deliver")}>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={disabled}
+          onClick={() => void update("deliver")}
+        >
           Mark delivered
         </Button>
       )}
@@ -331,13 +337,19 @@ export function OrderCard({ order, user_id }: { order: OrderHistoryEntry; user_i
           </Button>
         )}
         {order.held_payment && <HeldOrderActions order={order} buying={buying} selling={selling} />}
+        {(order.paid_at || order.held_payment || order.paid_amount != null) && (
+          <PaymentReceiptDownload order={order} />
+        )}
         <div className="mt-auto flex flex-wrap items-center gap-4 pt-1">
           <MessageContact
             phone={order.contact}
             label={buying ? "Message giver" : "Message receiver"}
             message={`Hi! I'm getting in touch about ${order.title} on DoingGood (order ${order.reference}).`}
           />
-          <Link to={`/orders/${order.id}`} className="text-sm font-semibold text-primary hover:underline">
+          <Link
+            to={`/orders/${order.id}`}
+            className="text-sm font-semibold text-primary hover:underline"
+          >
             View order
           </Link>
         </div>
@@ -392,7 +404,11 @@ export function OrderHistoryPage() {
             Keep every item request and giveaway in one place. Arrange handover on WhatsApp.
           </p>
         </div>
-        {admin && <Link to="/admin" className="text-sm font-semibold text-primary hover:underline">Admin overview</Link>}
+        {admin && (
+          <Link to="/admin" className="text-sm font-semibold text-primary hover:underline">
+            Admin overview
+          </Link>
+        )}
         <div className="flex items-center gap-2">
           <label htmlFor="order-view" className="text-sm font-medium text-muted-foreground">
             Show
