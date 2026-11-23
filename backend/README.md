@@ -23,7 +23,7 @@ can continue. Production never uses that fallback.
 ## User flows
 
 - Guests browse listings. Signed-in users contact donors through WhatsApp; there is no subscription requirement. Opening WhatsApp does not reserve a free item or create a database request. Paid items use the separate order flow when an approved payment arrangement is available.
-- Users create accounts and sign in with email and password. Passwords are salted and hashed with scrypt; plaintext passwords and hashes are never returned by the API. New passwords must contain 12–128 characters. HTTP-only sessions expire after 30 days; logout revokes the session.
+- Users create accounts and sign in with email and password. Passwords are salted and hashed with scrypt; plaintext passwords and hashes are never returned by the API. New passwords must contain 8–128 characters. HTTP-only sessions expire after 30 days; logout revokes the session.
 - Forgot password sends a one-time Postmark reset link that expires after 30 minutes. Only its hash is stored. Resetting a password revokes every existing session. Users who previously signed in with email codes use this flow to set their first password without losing profiles or listings.
 - After signing in or creating an account, users without a valid WhatsApp number provide their name and international WhatsApp number. They can update it in Profile or while listing an item. Free-listing numbers are shared with signed-in users. Paid-order contact details are shared with the buyer and seller after payment.
 - The donor dashboard contains My listings and Profile. Donors update listing status after agreeing arrangements on WhatsApp.

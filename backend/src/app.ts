@@ -27,7 +27,7 @@ const emailInput = z
   .max(254)
   .transform((v) => v.toLowerCase());
 const uuid = z.string().uuid();
-const passwordInput = z.string().min(12, "Use a password with at least 12 characters.").max(128);
+const passwordInput = z.string().min(8, "Use a password with at least 8 characters.").max(128);
 const profileSelect = {
   id: true,
   email: true,

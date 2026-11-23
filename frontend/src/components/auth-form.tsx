@@ -94,7 +94,7 @@ export function AuthForm({
     : mode === "forgot"
       ? "Enter your email and we will send you a password reset link."
       : mode === "reset"
-        ? "Choose a password with at least 12 characters."
+        ? "Choose a password with at least 8 characters."
         : mode === "signup"
           ? "Create an account to give items you no longer need and to request items you do."
           : "Sign in with your email and password.";
@@ -182,7 +182,7 @@ export function AuthForm({
                   onChange={(event) => setPassword(event.target.value)}
                 />
                 {mode === "signup" && (
-                  <p className="text-sm text-muted-foreground">Use at least 12 characters.</p>
+                  <p className="text-sm text-muted-foreground">Use at least 8 characters.</p>
                 )}
               </div>
             )}

@@ -7,7 +7,7 @@ const password = process.env["ADMIN_SEED_PASSWORD"];
 const fullName = process.env["ADMIN_SEED_NAME"]?.trim() || "DoingGood Administrator";
 
 if (!email || !password) throw new Error("Set ADMIN_SEED_EMAIL and ADMIN_SEED_PASSWORD in .env first.");
-if (password.length < 12) throw new Error("ADMIN_SEED_PASSWORD must be at least 12 characters.");
+if (password.length < 8) throw new Error("ADMIN_SEED_PASSWORD must be at least 8 characters.");
 
 const password_hash = await hashPassword(password);
 const user = await db.user.upsert({
