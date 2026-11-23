@@ -42,7 +42,8 @@ export function Index() {
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-8 text-muted-foreground sm:mt-6 sm:text-lg">
             Give it forward or give it a second life. Find free and paid furniture, clothes,
-            appliances, books and more from people across Lagos.
+            appliances, books and more from people everywhere. We hold all payments until you
+            confirm delivery.
           </p>
           <div className="mt-7 grid max-w-md grid-cols-2 gap-3 sm:mt-8 sm:flex">
             <Button variant="hero" size="lg" className="w-full sm:w-auto" asChild>

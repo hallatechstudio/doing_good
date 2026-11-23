@@ -13,7 +13,7 @@ const questions = [
   ],
   [
     "What can I give?",
-    "Useful household items such as furniture, clothing, appliances, kitchen items, books, baby essentials and electronics. Use clear photos and describe any wear or repairs needed so the recipient knows what to expect.",
+    "Useful household items such as furniture, clothing, footwear, appliances, kitchen items, books and baby essentials. Use clear photos and describe any wear or repairs needed so the recipient knows what to expect.",
   ],
   [
     "What happens after I request an item?",

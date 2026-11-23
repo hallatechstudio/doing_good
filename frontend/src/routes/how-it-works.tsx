@@ -18,7 +18,7 @@ const journeys = {
     {
       icon: Truck,
       title: "Arrange the logistics.",
-      body: "For paid items, choose pickup or delivery at checkout and review the total before paying. After payment, message the giver and arrange delivery. Your money is held until the receiver confirms delivery.",
+      body: "For paid items, choose pickup or delivery at checkout and review the total before paying. After payment, message the giver and arrange delivery. your money is held until you confirm delivery.",
     },
   ],
   give: [
@@ -35,7 +35,7 @@ const journeys = {
     {
       icon: Truck,
       title: "Plan pick-up or delivery.",
-      body: "Arrange collection on WhatsApp for free items. For paid orders, message the receiver and confirm delivery in Order history.",
+      body: "For paid items, set pickup or delivery and review the amount before listing. After payment, message the receiver and arrange delivery. your payout is held until the receiver confirms delivery.",
     },
   ],
 };
@@ -75,7 +75,7 @@ export function HowItWorksPage() {
                     : "text-muted-foreground hover:text-foreground")
                 }
               >
-                {value === "find" ? "I need an item" : "I want to give"}
+                {value === "find" ? "For receivers" : "For givers"}
               </button>
             ))}
           </div>
